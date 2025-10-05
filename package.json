@@ -1,0 +1,45 @@
+{
+  "name": "yp-erp",
+  "private": true,
+  "version": "0.0.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "pnpm --filter @yp/web dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "format": "prettier --write .",
+    "test": "pnpm -r test",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "eslint": "^9.10.0",
+    "eslint-config-next": "^14.2.6",
+    "prettier": "^3.3.3",
+    "lint-staged": "^15.2.9",
+    "husky": "^9.1.6",
+    "typescript": "^5.6.2",
+    "@types/node": "^20.14.12",
+    "postcss": "^8.4.47",
+    "autoprefixer": "^10.4.20",
+    "tailwindcss": "^3.4.10",
+    "dotenv": "^16.4.5",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint-plugin-unused-imports": "^4.1.0",
+    "eslint-config-prettier": "^9.1.0",
+    "@eslint/eslintrc": "^3.2.0",
+    "@eslint/js": "^9.10.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,json,css,md}": [
+      "prettier --write"
+    ],
+    "*.{ts,tsx,js}": [
+      "eslint --fix"
+    ]
+  }
+}
