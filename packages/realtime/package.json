@@ -1,0 +1,28 @@
+{
+  "name": "@yp/realtime",
+  "version": "0.0.1",
+  "description": "Real-time WebSocket/SSE server with event bus and receipts",
+  "main": "index.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsc -b --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "ws": "^8.14.2",
+    "redis": "^4.6.10",
+    "zod": "^3.23.8",
+    "cuid": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.5.10",
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.0",
+    "eslint": "^8.55.0"
+  },
+  "peerDependencies": {
+    "@yp/shared": "workspace:*",
+    "@yp/db": "workspace:*"
+  }
+}

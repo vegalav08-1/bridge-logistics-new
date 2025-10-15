@@ -6,8 +6,8 @@ import unusedImports from 'eslint-plugin-unused-imports';
 export default [
   js.configs.recommended,
   {
-    files: ['**/*.{ts,tsx,js,jsx}'],
-    ignores: ['dist/**', 'node_modules/**', '.next/**', '**/*.d.ts'],
+    files: ['src/**/*.{ts,tsx,js,jsx}', '*.{ts,tsx,js,jsx}'],
+    ignores: ['dist/**', 'node_modules/**', '.next/**', '**/*.d.ts', '**/.next/**', '**/.*/**', '**/.*'],
     languageOptions: {
       parser: typescriptParser,
       parserOptions: {
@@ -24,6 +24,12 @@ export default [
         module: 'readonly',
         require: 'readonly',
         React: 'readonly',
+        fetch: 'readonly',
+        localStorage: 'readonly',
+        console: 'readonly',
+        URL: 'readonly',
+        URLSearchParams: 'readonly',
+        crypto: 'readonly',
       },
     },
     plugins: {

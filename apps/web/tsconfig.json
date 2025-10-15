@@ -6,6 +6,7 @@
     "target": "ES2022",
     "jsx": "preserve",
     "paths": {
+      "@/*": ["./src/*"],
       "@yp/shared": ["../../packages/shared/index.ts"],
       "@yp/ui": ["../../packages/ui/index.ts"]
     },
@@ -25,6 +26,6 @@
       }
     ]
   },
-  "include": ["next-env.d.ts", "src/**/*", ".next/types/**/*.ts", "../../packages/ui/**/*"],
-  "exclude": ["node_modules"]
+  "include": ["next-env.d.ts", "src/**/*", ".next/types/**/*.ts", "../../packages/ui/**/*.ts", "../../packages/ui/**/*.tsx", "../../packages/shared/**/*.ts"],
+  "exclude": ["node_modules", "eslint.config.js"]
 }

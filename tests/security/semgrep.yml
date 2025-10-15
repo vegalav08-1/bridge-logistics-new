@@ -1,0 +1,11 @@
+rules:
+  - id: no-eval
+    patterns:
+      - pattern: eval(...)
+    message: Avoid eval
+    severity: ERROR
+    languages: [js, ts]
+
+
+
+

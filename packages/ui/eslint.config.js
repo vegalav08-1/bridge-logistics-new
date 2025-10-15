@@ -17,6 +17,10 @@ export default [
           jsx: true,
         },
       },
+      globals: {
+        React: 'readonly',
+        HTMLTextAreaElement: 'readonly',
+      },
     },
     plugins: {
       '@typescript-eslint': typescript,

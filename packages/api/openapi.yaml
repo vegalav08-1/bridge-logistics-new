@@ -1,0 +1,1307 @@
+openapi: 3.0.3
+info:
+  title: Bridge Logistics API
+  description: API для системы управления логистикой и отгрузками
+  version: 1.0.0
+  contact:
+    name: Bridge Team
+    email: support@bridge.com
+
+servers:
+  - url: http://localhost:3000/api
+    description: Development server
+  - url: https://api.bridge.com
+    description: Production server
+
+security:
+  - BearerAuth: []
+
+paths:
+  # ====== CRM ENDPOINTS ======
+  /crm/profiles:
+    get:
+      summary: Получить список CRM профилей
+      tags: [CRM]
+      parameters:
+        - name: kind
+          in: query
+          schema:
+            type: string
+            enum: [USER, PARTNER]
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: segments
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: cursor
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Список профилей
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CRMProfile'
+                  nextCursor:
+                    type: string
+                  hasMore:
+                    type: boolean
+
+    post:
+      summary: Создать CRM профиль
+      tags: [CRM]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCRMProfileRequest'
+      responses:
+        '201':
+          description: Профиль создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CRMProfile'
+
+  /crm/profiles/{profileId}:
+    get:
+      summary: Получить CRM профиль
+      tags: [CRM]
+      parameters:
+        - name: profileId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Профиль найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CRMProfile'
+        '404':
+          description: Профиль не найден
+
+    put:
+      summary: Обновить CRM профиль
+      tags: [CRM]
+      parameters:
+        - name: profileId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCRMProfileRequest'
+      responses:
+        '200':
+          description: Профиль обновлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CRMProfile'
+
+  /crm/profiles/{profileId}/contacts:
+    get:
+      summary: Получить контакты профиля
+      tags: [CRM]
+      parameters:
+        - name: profileId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Список контактов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CRMContact'
+
+    post:
+      summary: Добавить контакт
+      tags: [CRM]
+      parameters:
+        - name: profileId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCRMContactRequest'
+      responses:
+        '201':
+          description: Контакт добавлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CRMContact'
+
+  /crm/profiles/{profileId}/timeline:
+    get:
+      summary: Получить таймлайн профиля
+      tags: [CRM]
+      parameters:
+        - name: profileId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: cursor
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Таймлайн событий
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CRMTimelineEvent'
+                  nextCursor:
+                    type: string
+                  hasMore:
+                    type: boolean
+
+  /crm/profiles/{profileId}/tasks:
+    get:
+      summary: Получить задачи профиля
+      tags: [CRM]
+      parameters:
+        - name: profileId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Список задач
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CRMTask'
+
+    post:
+      summary: Создать задачу
+      tags: [CRM]
+      parameters:
+        - name: profileId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCRMTaskRequest'
+      responses:
+        '201':
+          description: Задача создана
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CRMTask'
+
+  # ====== WMS ENDPOINTS ======
+  /wms/receiving/{chatId}/sessions:
+    post:
+      summary: Начать сессию приёмки
+      tags: [WMS]
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartReceivingRequest'
+      responses:
+        '201':
+          description: Сессия создана
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WMSReceivingSession'
+
+  /wms/receiving/{chatId}/sessions/{sessionId}/items:
+    post:
+      summary: Добавить позицию в приёмку
+      tags: [WMS]
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddReceivingItemRequest'
+      responses:
+        '201':
+          description: Позиция добавлена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WMSReceivingItem'
+
+  /wms/receiving/{chatId}/sessions/{sessionId}/close:
+    post:
+      summary: Закрыть сессию приёмки
+      tags: [WMS]
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Сессия закрыта
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+
+  /wms/reconcile/{chatId}/diffs:
+    get:
+      summary: Получить расхождения сверки
+      tags: [WMS]
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Список расхождений
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WMSReconcileDiff'
+
+    post:
+      summary: Создать расхождение
+      tags: [WMS]
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReconcileDiffRequest'
+      responses:
+        '201':
+          description: Расхождение создано
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WMSReconcileDiff'
+
+  /wms/qa/{chatId}/issues:
+    get:
+      summary: Получить QA проблемы
+      tags: [WMS]
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Список проблем
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WMSQAIssue'
+
+    post:
+      summary: Создать QA проблему
+      tags: [WMS]
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateQAIssueRequest'
+      responses:
+        '201':
+          description: Проблема создана
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WMSQAIssue'
+
+  /wms/putaway/{chatId}/bins:
+    get:
+      summary: Получить доступные ячейки
+      tags: [WMS]
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Список ячеек
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WMSBin'
+
+  /wms/putaway/{chatId}/moves:
+    post:
+      summary: Выполнить перемещение
+      tags: [WMS]
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePutawayMoveRequest'
+      responses:
+        '201':
+          description: Перемещение выполнено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WMSPutawayMove'
+
+  # ====== ORDER LIFECYCLE ENDPOINTS ======
+  /orders/{chatId}/fsm/state:
+    get:
+      summary: Получить состояние FSM
+      tags: [Order Lifecycle]
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Состояние FSM
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderFSMState'
+
+  /orders/{chatId}/fsm/transitions:
+    post:
+      summary: Выполнить переход FSM
+      tags: [Order Lifecycle]
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FSMTransitionRequest'
+      responses:
+        '200':
+          description: Переход выполнен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderFSMTransition'
+
+  /orders/{chatId}/raci:
+    get:
+      summary: Получить RACI матрицу
+      tags: [Order Lifecycle]
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: RACI матрица
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderRACI'
+
+  /orders/{chatId}/sla:
+    get:
+      summary: Получить SLA информацию
+      tags: [Order Lifecycle]
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: SLA информация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderSLA'
+
+  # ====== CHANGE REQUESTS ENDPOINTS ======
+  /change-requests/{chatId}:
+    get:
+      summary: Получить запросы на изменение
+      tags: [Change Requests]
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Список запросов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChangeRequest'
+
+    post:
+      summary: Создать запрос на изменение
+      tags: [Change Requests]
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateChangeRequestRequest'
+      responses:
+        '201':
+          description: Запрос создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChangeRequest'
+
+  /change-requests/{requestId}/approve:
+    post:
+      summary: Одобрить запрос на изменение
+      tags: [Change Requests]
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApproveChangeRequestRequest'
+      responses:
+        '200':
+          description: Запрос одобрен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChangeRequestApproval'
+
+  /change-requests/{requestId}/apply:
+    post:
+      summary: Применить изменения
+      tags: [Change Requests]
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Изменения применены
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  version:
+                    type: integer
+
+  /change-requests/{requestId}/rollback:
+    post:
+      summary: Откатить изменения
+      tags: [Change Requests]
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Изменения откачены
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # ====== CRM SCHEMAS ======
+    CRMProfile:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        kind:
+          type: string
+          enum: [USER, PARTNER]
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+        referredBy:
+          type: string
+        notes:
+          type: string
+        metadata:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        contacts:
+          type: array
+          items:
+            $ref: '#/components/schemas/CRMContact'
+        addresses:
+          type: array
+          items:
+            $ref: '#/components/schemas/CRMAddress'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/CRMTag'
+        kpi:
+          $ref: '#/components/schemas/CRMKPI'
+
+    CRMContact:
+      type: object
+      properties:
+        id:
+          type: string
+        profileId:
+          type: string
+        kind:
+          type: string
+          enum: [PHONE, EMAIL, TELEGRAM, WHATSAPP, OTHER]
+        value:
+          type: string
+        primary:
+          type: boolean
+        verified:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CRMAddress:
+      type: object
+      properties:
+        id:
+          type: string
+        profileId:
+          type: string
+        label:
+          type: string
+        country:
+          type: string
+        city:
+          type: string
+        zip:
+          type: string
+        line1:
+          type: string
+        line2:
+          type: string
+        isDefault:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CRMTag:
+      type: object
+      properties:
+        id:
+          type: string
+        profileId:
+          type: string
+        name:
+          type: string
+        color:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    CRMKPI:
+      type: object
+      properties:
+        id:
+          type: string
+        profileId:
+          type: string
+        ltv:
+          type: number
+        arpu:
+          type: number
+        ordersCount:
+          type: integer
+        openShipments:
+          type: integer
+        lastActivity:
+          type: string
+          format: date-time
+        debtAmount:
+          type: number
+        debtCurrency:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CRMTimelineEvent:
+      type: object
+      properties:
+        id:
+          type: string
+        profileId:
+          type: string
+        chatId:
+          type: string
+        type:
+          type: string
+          enum: [order, status, payment, message, file, task, system]
+        title:
+          type: string
+        subtitle:
+          type: string
+        refType:
+          type: string
+        refId:
+          type: string
+        metadata:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    CRMTask:
+      type: object
+      properties:
+        id:
+          type: string
+        profileId:
+          type: string
+        title:
+          type: string
+        dueAt:
+          type: string
+          format: date-time
+        done:
+          type: boolean
+        assigneeId:
+          type: string
+        notes:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateCRMProfileRequest:
+      type: object
+      required: [userId, kind, displayName]
+      properties:
+        userId:
+          type: string
+        kind:
+          type: string
+          enum: [USER, PARTNER]
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+        referredBy:
+          type: string
+        notes:
+          type: string
+        metadata:
+          type: string
+
+    UpdateCRMProfileRequest:
+      type: object
+      properties:
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+        notes:
+          type: string
+        metadata:
+          type: string
+
+    CreateCRMContactRequest:
+      type: object
+      required: [kind, value]
+      properties:
+        kind:
+          type: string
+          enum: [PHONE, EMAIL, TELEGRAM, WHATSAPP, OTHER]
+        value:
+          type: string
+        primary:
+          type: boolean
+        verified:
+          type: boolean
+
+    CreateCRMTaskRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+        dueAt:
+          type: string
+          format: date-time
+        assigneeId:
+          type: string
+        notes:
+          type: string
+
+    # ====== WMS SCHEMAS ======
+    WMSReceivingSession:
+      type: object
+      properties:
+        id:
+          type: string
+        chatId:
+          type: string
+        actorId:
+          type: string
+        startedAt:
+          type: string
+          format: date-time
+        closedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/WMSReceivingItem'
+
+    WMSReceivingItem:
+      type: object
+      properties:
+        id:
+          type: string
+        sessionId:
+          type: string
+        sku:
+          type: string
+        name:
+          type: string
+        expectedQty:
+          type: integer
+        receivedQty:
+          type: integer
+        damage:
+          type: string
+          enum: [NONE, MINOR, MAJOR]
+        notes:
+          type: string
+        sourceLabel:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    WMSReconcileDiff:
+      type: object
+      properties:
+        id:
+          type: string
+        chatId:
+          type: string
+        receivingItemId:
+          type: string
+        type:
+          type: string
+          enum: [OVER, SHORT, MISMATCH]
+        deltaUnits:
+          type: integer
+        comment:
+          type: string
+        resolved:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    WMSQAIssue:
+      type: object
+      properties:
+        id:
+          type: string
+        chatId:
+          type: string
+        receivingItemId:
+          type: string
+        severity:
+          type: string
+          enum: [LOW, MEDIUM, HIGH]
+        kind:
+          type: string
+          enum: [PACKAGING, LABEL, BROKEN, WET, OTHER]
+        comment:
+          type: string
+        resolved:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    WMSBin:
+      type: object
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        area:
+          type: string
+        rack:
+          type: string
+        shelf:
+          type: string
+        cell:
+          type: string
+        capacity:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    WMSPutawayMove:
+      type: object
+      properties:
+        id:
+          type: string
+        chatId:
+          type: string
+        receivingItemId:
+          type: string
+        binId:
+          type: string
+        qty:
+          type: integer
+        movedAt:
+          type: string
+          format: date-time
+        byUserId:
+          type: string
+
+    StartReceivingRequest:
+      type: object
+      required: [actorId]
+      properties:
+        actorId:
+          type: string
+
+    AddReceivingItemRequest:
+      type: object
+      required: [sku, expectedQty]
+      properties:
+        sku:
+          type: string
+        name:
+          type: string
+        expectedQty:
+          type: integer
+        receivedQty:
+          type: integer
+        damage:
+          type: string
+          enum: [NONE, MINOR, MAJOR]
+        notes:
+          type: string
+        sourceLabel:
+          type: string
+
+    CreateReconcileDiffRequest:
+      type: object
+      required: [receivingItemId, type, deltaUnits]
+      properties:
+        receivingItemId:
+          type: string
+        type:
+          type: string
+          enum: [OVER, SHORT, MISMATCH]
+        deltaUnits:
+          type: integer
+        comment:
+          type: string
+
+    CreateQAIssueRequest:
+      type: object
+      required: [receivingItemId, severity, kind]
+      properties:
+        receivingItemId:
+          type: string
+        severity:
+          type: string
+          enum: [LOW, MEDIUM, HIGH]
+        kind:
+          type: string
+          enum: [PACKAGING, LABEL, BROKEN, WET, OTHER]
+        comment:
+          type: string
+
+    CreatePutawayMoveRequest:
+      type: object
+      required: [receivingItemId, binId, qty]
+      properties:
+        receivingItemId:
+          type: string
+        binId:
+          type: string
+        qty:
+          type: integer
+
+    # ====== ORDER LIFECYCLE SCHEMAS ======
+    OrderFSMState:
+      type: object
+      properties:
+        id:
+          type: string
+        chatId:
+          type: string
+        status:
+          type: string
+        gates:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    OrderFSMTransition:
+      type: object
+      properties:
+        id:
+          type: string
+        stateId:
+          type: string
+        from:
+          type: string
+        to:
+          type: string
+        byUserId:
+          type: string
+        reason:
+          type: string
+        metadata:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    OrderRACI:
+      type: object
+      properties:
+        id:
+          type: string
+        chatId:
+          type: string
+        status:
+          type: string
+        responsible:
+          type: string
+        accountable:
+          type: string
+        consulted:
+          type: string
+        informed:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    OrderSLA:
+      type: object
+      properties:
+        id:
+          type: string
+        chatId:
+          type: string
+        stage:
+          type: string
+        targetHours:
+          type: integer
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        escalated:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    FSMTransitionRequest:
+      type: object
+      required: [action, payload]
+      properties:
+        action:
+          type: string
+        payload:
+          type: object
+        reason:
+          type: string
+        metadata:
+          type: object
+
+    # ====== CHANGE REQUESTS SCHEMAS ======
+    ChangeRequest:
+      type: object
+      properties:
+        id:
+          type: string
+        chatId:
+          type: string
+        orderId:
+          type: string
+        rationale:
+          type: string
+        fields:
+          type: string
+        baseVersion:
+          type: integer
+        status:
+          type: string
+          enum: [PENDING, APPROVED, REJECTED, APPLIED, ROLLED_BACK]
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        appliedAt:
+          type: string
+          format: date-time
+        rejectedAt:
+          type: string
+          format: date-time
+
+    ChangeRequestApproval:
+      type: object
+      properties:
+        id:
+          type: string
+        changeRequestId:
+          type: string
+        approverId:
+          type: string
+        decision:
+          type: string
+          enum: [APPROVED, REJECTED]
+        comment:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateChangeRequestRequest:
+      type: object
+      required: [orderId, rationale, fields, baseVersion]
+      properties:
+        orderId:
+          type: string
+        rationale:
+          type: string
+        fields:
+          type: string
+        baseVersion:
+          type: integer
+
+    ApproveChangeRequestRequest:
+      type: object
+      required: [decision]
+      properties:
+        decision:
+          type: string
+          enum: [APPROVED, REJECTED]
+        comment:
+          type: string
+
+tags:
+  - name: CRM
+    description: CRM операции
+  - name: WMS
+    description: Warehouse Management System
+  - name: Order Lifecycle
+    description: Управление жизненным циклом заказов
+  - name: Change Requests
+    description: Запросы на изменение
+

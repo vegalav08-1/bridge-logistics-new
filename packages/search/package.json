@@ -1,0 +1,31 @@
+{
+  "name": "@yp/search",
+  "version": "0.0.1",
+  "description": "Search and indexing package for YP Bridge",
+  "main": "index.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsc -b --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@types/react": "^18.3.25",
+    "bullmq": "^5.0.0",
+    "ioredis": "^5.3.2",
+    "meilisearch": "^0.40.0",
+    "react": "^18.3.1",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "@yp/db": "workspace:*",
+    "@yp/shared": "workspace:*"
+  }
+}
+
+
+
+

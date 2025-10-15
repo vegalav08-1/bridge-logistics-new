@@ -1,0 +1,1027 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// ====== ENUMS (SQLite doesn't support enums, using String) ======
+// Role: SUPER_ADMIN, ADMIN, USER
+// ChatType: REQUEST, SHIPMENT  
+// MessageKind: text, file, image, video, system
+// ShipmentStatus: REQUEST, NEW, RECEIVE, RECONCILE, PACK, MERGE, IN_TRANSIT, ON_DELIVERY, DELIVERED, ARCHIVED, CANCELLED
+// FileType: image, pdf, doc, sheet, video, other
+
+/// ====== MODELS ======
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  emailVerified  DateTime?
+  passwordHash   String?
+  role           String // SUPER_ADMIN, ADMIN, USER
+  parentAdminId  String?        // USER → его материнский Admin
+  parentAdmin    User?    @relation("AdminUsers", fields: [parentAdminId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  // обратная сторона реферальной ветки
+  children       User[]   @relation("AdminUsers")
+
+  // участие в чатах
+  chatMembers    ChatMember[]
+
+  // авторами Request/Shipment будут Users
+  requests       Request[]  @relation("RequestCreator")
+  shipments      Shipment[] @relation("ShipmentCreator")
+  
+  // связи для партнёрских админов
+  partnerRequests  Request[]  @relation("RequestAdmin")
+  partnerShipments Shipment[] @relation("ShipmentAdmin")
+  
+  // сообщения пользователя
+  messages      Message[]
+
+  // Auth V2 - сессии и верификации
+  sessions           Session[]
+  emailVerifications EmailVerification[]
+  passwordResets     PasswordReset[]
+
+  // S3 - реферальные ссылки
+  referralTokens     ReferralToken[]
+  
+  // S16 - упаковка
+  parcels       Parcel[]
+  packingPresets PackingPreset[]
+  
+  // S10 - финансы
+  financeOps    FinanceLedger[]
+
+  // S6 - офферы администратора
+  offers             Offer[]
+
+  // S8 - квитанции прочтения
+  chatReads          ChatRead[]
+
+  // S9 - стейт-машина и логистика
+  transitions        ShipmentTransition[]
+  logisticsActions   LogisticsAction[]
+
+  // S13 - уведомления и настройки
+  notifications       Notification[]
+  userSettings        UserSettings?
+
+  // S14 - chunked uploads
+  uploadSessions       UploadSession[]
+
+  // S19 - CRM
+  crmProfile           CRMProfile?
+
+  // S15 - Order Lifecycle
+  orderTransitions     OrderFSMTransition[]
+
+  // S16 - Change Requests
+  changeRequests       ChangeRequest[]
+  changeRequestApprovals ChangeRequestApproval[]
+
+  // S17 - WMS
+  wmsReceivingSessions WMSReceivingSession[]
+  wmsPutawayMoves      WMSPutawayMove[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([role])
+  @@index([parentAdminId])
+}
+
+model Chat {
+  id         String     @id @default(cuid())
+  number     String     @unique
+  type       String // REQUEST, SHIPMENT
+  status     String // REQUEST, NEW, RECEIVE, RECONCILE, PACK, MERGE, IN_TRANSIT, ON_DELIVERY, DELIVERED, ARCHIVED, CANCELLED
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  members    ChatMember[]
+  messages   Message[]
+  attachments Attachment[]
+  chatReads  ChatRead[]
+  transitions ShipmentTransition[]
+  logisticsActions LogisticsAction[]
+  parcels    Parcel[]
+  uploadSessions UploadSession[]
+  financeOps FinanceLedger[]
+
+  // S19 - CRM
+  crmTimelineEvents CRMTimelineEvent[]
+
+  // S15 - Order Lifecycle
+  orderFSMState OrderFSMState?
+  orderRACI OrderRACI[]
+  orderSLA OrderSLA[]
+
+  // S16 - Change Requests
+  changeRequests ChangeRequest[]
+  orderVersions OrderVersion[]
+
+  // S17 - WMS
+  wmsReceivingSessions WMSReceivingSession[]
+  wmsReconcileDiffs WMSReconcileDiff[]
+  wmsQAIssues WMSQAIssue[]
+  wmsPutawayMoves WMSPutawayMove[]
+  wmsReturnCases WMSReturnCase[]
+
+  request    Request?
+  shipment   Shipment?
+
+  @@index([updatedAt])
+}
+
+model ChatMember {
+  chatId   String
+  userId   String
+  role     String    // ADMIN | USER (или SYSTEM при надобности)
+
+  chat     Chat      @relation(fields: [chatId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  joinedAt DateTime  @default(now())
+
+  @@id([chatId, userId])
+  @@index([userId])
+}
+
+model Message {
+  id        String      @id @default(cuid())
+  chatId    String
+  authorId  String?
+  kind      String    // text, file, image, video, system
+  seq       Int
+  clientId  String?     @unique
+  payload   String    // JSON as string
+  createdAt DateTime    @default(now())
+  editedAt  DateTime?
+  deletedAt DateTime?
+
+  chat      Chat        @relation(fields: [chatId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  author    User?       @relation(fields: [authorId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  attachments Attachment[]
+
+  @@unique([chatId, seq]) // последовательность сообщений в рамках чата
+  @@index([chatId, createdAt])
+}
+
+model Request {
+  id              String   @id @default(cuid())
+  chatId          String   @unique
+  partnerAdminId  String
+  createdById     String
+
+  // основные поля запроса (упрощённо — расширим в S6)
+  description     String
+  weightKg        Decimal?
+  boxPcs          Int?
+  volumeM3        Decimal?
+  oldTrackNumber  String?
+  costOfGoodsUSD  Decimal?
+  packingType     String?
+  receiptAddress  String?
+  imagesJson      String? // JSON as string
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  chat            Chat     @relation(fields: [chatId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  partnerAdmin    User     @relation("RequestAdmin", fields: [partnerAdminId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  createdBy       User     @relation("RequestCreator", fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  // S6 - оффер по запросу
+  offer           Offer?
+
+  @@index([partnerAdminId])
+  @@index([createdById])
+}
+
+model Shipment {
+  id              String   @id @default(cuid())
+  chatId          String   @unique
+  partnerAdminId  String
+  createdById     String
+  status          String // REQUEST, NEW, RECEIVE, RECONCILE, PACK, MERGE, IN_TRANSIT, ON_DELIVERY, DELIVERED, ARCHIVED, CANCELLED
+
+  // базовые поля (детализация в S6/S9)
+  trackingNumber  String?  @unique
+  notes           String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  chat            Chat     @relation(fields: [chatId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  partnerAdmin    User     @relation("ShipmentAdmin", fields: [partnerAdminId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  createdBy       User     @relation("ShipmentCreator", fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  // S6 - QR этикетка
+  qrLabel         QRLabel?
+
+  @@index([partnerAdminId])
+  @@index([createdById])
+  @@index([status])
+}
+
+model Attachment {
+  id            String   @id @default(cuid())
+  chatId        String
+  messageId     String?             // сначала draft (null), затем линкуем к Message
+  fileName      String   @default("")
+  type          String // image, pdf, doc, sheet, video, other
+  objectKey     String
+  mime          String
+  bytes         Int
+  width         Int?
+  height        Int?
+  pages         Int?
+  hash          String?             // sha256 для идемпотентности
+  thumbKey      String?             // s3 key превью (image/png)
+  ocrTextKey    String?             // key в объектном хранилище (gzip txt/json)
+  sha256        String?
+  isSafe        Boolean             @default(true) // результат AV
+  currentVerId  String?             // актуальная версия
+  avClean       Boolean?            // результат AV (legacy)
+  uploadedAt    DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  chat          Chat     @relation(fields: [chatId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  message       Message? @relation(fields: [messageId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  versions      AttachmentVersion[]
+  meta          AttachmentMeta?
+  annotations   Annotation[]
+
+  @@index([chatId])
+  @@index([messageId])
+  @@index([hash])
+  @@index([uploadedAt])
+  @@index([sha256])
+}
+
+/// ====== AUTH V2 MODELS ======
+
+model Session {
+  id          String   @id @default(cuid())
+  userId      String
+  refreshHash String   // hash(refreshToken)
+  userAgent   String?
+  ip          String?
+  validUntil  DateTime
+  createdAt   DateTime @default(now())
+  revokedAt   DateTime?
+  reason      String?
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@index([validUntil])
+}
+
+model EmailVerification {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+}
+
+model PasswordReset {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+}
+
+/// ====== S3 REFERRAL MODELS ======
+
+model ReferralToken {
+  id         String   @id @default(cuid())
+  adminId    String
+  token      String   @unique // короткий код для URL, например base58
+  label      String?
+  createdAt  DateTime @default(now())
+  revokedAt  DateTime?
+
+  admin      User     @relation(fields: [adminId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([adminId])
+}
+
+/// ====== S6 OFFER & QR MODELS ======
+
+model Offer {
+  id              String   @id @default(cuid())
+  requestId       String   @unique        // один активный оффер на запрос
+  partnerAdminId  String
+  pricePerKgUSD   Decimal
+  insuranceUSD    Decimal?  // фикс. страховая сумма
+  packingUSD      Decimal?
+  deliveryDays    Int?                         // срок в днях
+  deliveryMethod  String?                      // авиа/море/экспресс…
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  request         Request  @relation(fields: [requestId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  admin           User     @relation(fields: [partnerAdminId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([partnerAdminId])
+}
+
+model QRLabel {
+  id          String   @id @default(cuid())
+  shipmentId  String   @unique
+  code        String   // BRYYYYMMDD_1_10(ABCD1234)
+  pdfKey      String   // objectKey в S3/MinIO (S7 интегрируем хранение)
+  createdAt   DateTime @default(now())
+
+  shipment    Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+}
+
+/// ====== S8 REALTIME MODELS ======
+
+model ChatRead {
+  id        String   @id @default(cuid())
+  chatId    String
+  userId    String
+  maxSeq    Int      // последний прочитанный seq в чате
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([chatId, userId])
+  @@index([chatId])
+  @@index([userId])
+}
+
+/// ====== S9 STATE MACHINE & LOGISTICS MODELS ======
+
+model ShipmentTransition {
+  id         String   @id @default(cuid())
+  chatId     String
+  from       String   // ShipmentStatus
+  to         String   // ShipmentStatus
+  byUserId   String
+  reason     String?  // текстовое примечание (например, «частичная приёмка»)
+  meta       String?  // JSON полезные данные операции
+  createdAt  DateTime @default(now())
+
+  chat       Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  byUser     User     @relation(fields: [byUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([chatId, createdAt])
+  @@index([byUserId])
+}
+
+model LogisticsAction {
+  id         String   @id @default(cuid())
+  chatId     String
+  type       String   // e.g. "receive.full", "receive.partial", "reconcile.create", "reconcile.confirm", "pack.config", "pack.complete", "merge.attach", "merge.detach", "delete.cargo"
+  byUserId   String
+  payload    String   // JSON содержимое операции: позиции, веса, коробки, фото-акт и др.
+  createdAt  DateTime @default(now())
+
+  chat       Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  byUser     User     @relation(fields: [byUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([chatId, createdAt])
+  @@index([type])
+}
+
+model Parcel {
+  id         String   @id @default(cuid())
+  chatId     String
+  code       String   @unique // внутренний код партии/коробки
+  name       String?  // опционально: "Box #1"
+  weightKg   Float?
+  lengthCm   Float?
+  widthCm    Float?
+  heightCm   Float?
+  volumeM3   Float?
+  pieces     Int?     // мелкие единицы, если нужно
+  parentId   String?  // для иерархий при совмещении (вложенность)
+  kind       String   @default("box") // "box", "pallet", "crating"
+  attrs      String?  // тип упаковки: "Скотч+мешок" и пр. (JSON строка)
+  labelKey   String?  // путь к PDF этикетки
+  createdById String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  chat       Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  parent     Parcel?  @relation("ParcelParent", fields: [parentId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  children   Parcel[] @relation("ParcelParent")
+  creator    User     @relation(fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([chatId])
+  @@index([parentId])
+  @@unique([chatId, code])
+}
+
+/// ====== S13 NOTIFICATIONS & SETTINGS MODELS ======
+
+model Notification {
+  id             String   @id @default(cuid())
+  userId         String
+  chatId         String?
+  messageId      String?
+  type           String   // e.g. 'chat_message', 'status_change', 'mention', 'finance_op', 'offer_created'
+  title          String
+  body           String?
+  data           String?  // JSON as string
+  isRead         Boolean  @default(false)
+  deliveredAt    DateTime @default(now())
+  readAt         DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@index([chatId])
+  @@index([messageId])
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@index([type])
+}
+
+model UserSettings {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  pushEnabled    Boolean  @default(true)
+  emailEnabled   Boolean  @default(true)
+  quietHoursFrom Int?     // например, 22
+  quietHoursTo   Int?     // например, 8
+  preferredLang  String?  // 'ru', 'en', 'zh'
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+}
+
+/// ====== S14 PWA & CHUNKED UPLOADS MODELS ======
+
+model UploadSession {
+  id         String   @id @default(cuid())
+  userId     String
+  chatId     String
+  fileName   String
+  mime       String
+  totalSize  Int
+  partSize   Int
+  status     String   // INIT, UPLOADING, COMPLETED, ABORTED
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  chat       Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  parts      UploadPart[]
+
+  @@index([userId])
+  @@index([chatId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model UploadPart {
+  id         String   @id @default(cuid())
+  uploadId   String
+  partNumber Int
+  size       Int
+  checksum   String   // SHA-256
+  status     String   // PENDING, UPLOADING, UPLOADED, FAILED
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  upload     UploadSession @relation(fields: [uploadId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([uploadId, partNumber])
+  @@index([uploadId])
+  @@index([status])
+}
+
+/// ====== S15 FILES 2.0 MODELS ======
+
+model AttachmentVersion {
+  id            String   @id @default(cuid())
+  attachmentId  String
+  fileName      String
+  mime          String
+  bytes         Int
+  objectKey     String
+  sha256        String?
+  createdById   String
+  createdAt     DateTime @default(now())
+  note          String?
+
+  attachment    Attachment @relation(fields: [attachmentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([attachmentId])
+  @@index([createdById])
+  @@index([createdAt])
+}
+
+model AttachmentMeta {
+  id            String   @id @default(cuid())
+  attachmentId  String   @unique
+  pages         Int?
+  width         Int?
+  height        Int?
+  ocrDone       Boolean  @default(false)
+  ocrLang       String?  // 'ru+en+zh'
+  avScannedAt   DateTime?
+  exifStripped  Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  attachment    Attachment @relation(fields: [attachmentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([attachmentId])
+  @@index([ocrDone])
+}
+
+model Annotation {
+  id            String   @id @default(cuid())
+  attachmentId  String
+  authorId      String
+  page          Int?     // для PDF
+  rect          String?  // JSON: {x,y,w,h} px
+  content       String   // текст комментария
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  attachment    Attachment @relation(fields: [attachmentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([attachmentId])
+  @@index([authorId])
+  @@index([createdAt])
+}
+
+// ====== S16: PACK PRO MODELS ======
+
+model PackingPreset {
+  id          String   @id @default(cuid())
+  adminId     String
+  name        String
+  kind        String   // box|pallet|crating
+  dims        String   // {l,w,h} по умолчанию (JSON строка)
+  priceRules  String   // {packing: {fixed:8}|{perKg:1.5}, insurance:{percent:1}, ...} (JSON строка)
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  admin       User     @relation(fields: [adminId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([adminId])
+  @@index([isDefault])
+}
+
+// ====== S10: FINANCE MODELS ======
+
+model FinanceLedger {
+  id          String   @id @default(cuid())
+  chatId      String
+  userId      String
+  opKind      String   // "pack", "insurance", "other", etc.
+  title       String
+  amount      Float
+  currency    String   @default("USD")
+  isAuto      Boolean  @default(false)
+  metadata    String?  // JSON string with additional data
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  chat       Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([chatId])
+  @@index([userId])
+  @@index([opKind])
+  @@index([isAuto])
+  @@index([createdAt])
+}
+
+// ====== S19: CRM MODELS ======
+
+model CRMProfile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  kind          String   // USER, PARTNER
+  displayName   String
+  avatarUrl     String?
+  referredBy    String?  // ID of referring user
+  notes         String?
+  metadata      String?  // JSON string
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  contacts      CRMContact[]
+  addresses    CRMAddress[]
+  tags          CRMTag[]
+  kpi           CRMKPI?
+  timeline      CRMTimelineEvent[]
+  tasks         CRMTask[]
+
+  @@index([kind])
+  @@index([referredBy])
+}
+
+model CRMContact {
+  id          String   @id @default(cuid())
+  profileId   String
+  kind        String   // PHONE, EMAIL, TELEGRAM, WHATSAPP, OTHER
+  value       String
+  primary     Boolean  @default(false)
+  verified    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  profile     CRMProfile @relation(fields: [profileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([profileId])
+  @@index([kind])
+}
+
+model CRMAddress {
+  id          String   @id @default(cuid())
+  profileId   String
+  label       String?
+  country     String   // ISO2
+  city        String
+  zip         String?
+  line1       String
+  line2       String?
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  profile     CRMProfile @relation(fields: [profileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([profileId])
+  @@index([isDefault])
+}
+
+model CRMTag {
+  id          String   @id @default(cuid())
+  profileId   String
+  name        String
+  color       String?
+  createdAt   DateTime @default(now())
+
+  profile     CRMProfile @relation(fields: [profileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([profileId])
+}
+
+model CRMKPI {
+  id              String   @id @default(cuid())
+  profileId       String   @unique
+  ltv             Float    @default(0)
+  arpu            Float    @default(0)
+  ordersCount     Int      @default(0)
+  openShipments   Int      @default(0)
+  lastActivity    DateTime?
+  debtAmount      Float?
+  debtCurrency    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  profile         CRMProfile @relation(fields: [profileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([profileId])
+}
+
+model CRMTimelineEvent {
+  id          String   @id @default(cuid())
+  profileId   String
+  chatId      String?
+  type        String   // order, status, payment, message, file, task, system
+  title       String
+  subtitle    String?
+  refType     String?  // shipment, chat, invoice, task
+  refId       String?
+  metadata    String?  // JSON string
+  createdAt   DateTime @default(now())
+
+  profile     CRMProfile @relation(fields: [profileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  chat        Chat?     @relation(fields: [chatId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([profileId])
+  @@index([chatId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model CRMTask {
+  id          String   @id @default(cuid())
+  profileId   String
+  title       String
+  dueAt       DateTime?
+  done        Boolean  @default(false)
+  assigneeId  String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  profile     CRMProfile @relation(fields: [profileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([profileId])
+  @@index([assigneeId])
+  @@index([done])
+}
+
+// ====== S17: WMS MODELS ======
+
+model WMSReceivingSession {
+  id          String   @id @default(cuid())
+  chatId      String
+  actorId     String
+  startedAt   DateTime @default(now())
+  closedAt    DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  chat        Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  actor       User     @relation(fields: [actorId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  items       WMSReceivingItem[]
+
+  @@index([chatId])
+  @@index([actorId])
+}
+
+model WMSReceivingItem {
+  id          String   @id @default(cuid())
+  sessionId   String
+  sku         String?
+  name        String?
+  expectedQty Int      @default(0)
+  receivedQty Int      @default(0)
+  damage      String   @default("NONE") // NONE, MINOR, MAJOR
+  notes       String?
+  sourceLabel String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  session     WMSReceivingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  photos      WMSPhoto[]
+  diffs       WMSReconcileDiff[]
+  qaIssues    WMSQAIssue[]
+  moves       WMSPutawayMove[]
+
+  @@index([sessionId])
+  @@index([sku])
+}
+
+model WMSReconcileDiff {
+  id              String   @id @default(cuid())
+  chatId          String
+  receivingItemId String
+  type            String   // OVER, SHORT, MISMATCH
+  deltaUnits      Int
+  comment         String?
+  resolved        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  chat            Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  receivingItem   WMSReceivingItem @relation(fields: [receivingItemId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  photos          WMSPhoto[]
+
+  @@index([chatId])
+  @@index([receivingItemId])
+  @@index([type])
+}
+
+model WMSQAIssue {
+  id              String   @id @default(cuid())
+  chatId          String
+  receivingItemId String
+  severity        String   // LOW, MEDIUM, HIGH
+  kind            String   // PACKAGING, LABEL, BROKEN, WET, OTHER
+  comment         String?
+  resolved        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  chat            Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  receivingItem   WMSReceivingItem @relation(fields: [receivingItemId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  photos          WMSPhoto[]
+
+  @@index([chatId])
+  @@index([receivingItemId])
+  @@index([severity])
+}
+
+model WMSBin {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  area        String
+  rack        String
+  shelf       String
+  cell        String
+  capacity    String?  // JSON string with capacity info
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  moves       WMSPutawayMove[]
+
+  @@index([code])
+  @@index([area])
+}
+
+model WMSPutawayMove {
+  id              String   @id @default(cuid())
+  chatId          String
+  receivingItemId String
+  binId           String
+  qty             Int
+  movedAt         DateTime @default(now())
+  byUserId        String
+
+  chat            Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  receivingItem   WMSReceivingItem @relation(fields: [receivingItemId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  bin             WMSBin   @relation(fields: [binId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  byUser          User     @relation(fields: [byUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([chatId])
+  @@index([receivingItemId])
+  @@index([binId])
+}
+
+model WMSPhoto {
+  id          String   @id @default(cuid())
+  entityType  String   // receiving_item, reconcile_diff, qa_issue, return_case
+  entityId    String
+  url         String?
+  uploading   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  receivingItem   WMSReceivingItem? @relation(fields: [entityId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  reconcileDiff   WMSReconcileDiff? @relation(fields: [entityId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  qaIssue         WMSQAIssue? @relation(fields: [entityId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  returnCase      WMSReturnCase? @relation(fields: [entityId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([entityType, entityId])
+}
+
+model WMSReturnCase {
+  id          String   @id @default(cuid())
+  chatId      String
+  reason      String   // USER_REFUSED, DEFECT, LOST, OTHER
+  initiatedBy String   // USER, ADMIN, SYSTEM
+  status      String   // OPEN, IN_PROGRESS, SHIPPED_BACK, CLOSED
+  items       String   // JSON string with items
+  history     String   // JSON string with history
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  chat        Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  photos      WMSPhoto[]
+
+  @@index([chatId])
+  @@index([status])
+}
+
+// ====== S15: ORDER LIFECYCLE MODELS ======
+
+model OrderFSMState {
+  id          String   @id @default(cuid())
+  chatId      String   @unique
+  status      String   // current FSM status
+  gates       String   // JSON string with gate states
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  chat        Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  transitions OrderFSMTransition[]
+
+  @@index([chatId])
+  @@index([status])
+}
+
+model OrderFSMTransition {
+  id          String   @id @default(cuid())
+  stateId     String
+  from        String
+  to          String
+  byUserId    String
+  reason      String?
+  metadata    String?  // JSON string
+  createdAt   DateTime @default(now())
+
+  state       OrderFSMState @relation(fields: [stateId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  byUser      User     @relation(fields: [byUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([stateId])
+  @@index([byUserId])
+  @@index([createdAt])
+}
+
+model OrderRACI {
+  id          String   @id @default(cuid())
+  chatId      String
+  status      String
+  responsible String?  // user ID
+  accountable String?  // user ID
+  consulted   String?  // JSON array of user IDs
+  informed    String?  // JSON array of user IDs
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  chat        Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([chatId])
+  @@index([status])
+}
+
+model OrderSLA {
+  id          String   @id @default(cuid())
+  chatId      String
+  stage       String
+  targetHours Int
+  startedAt   DateTime
+  completedAt DateTime?
+  escalated   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  chat        Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([chatId])
+  @@index([stage])
+  @@index([startedAt])
+}
+
+// ====== S16: CHANGE REQUESTS & VERSIONING MODELS ======
+
+model ChangeRequest {
+  id            String   @id @default(cuid())
+  chatId        String
+  orderId       String
+  rationale     String
+  fields        String   // JSON array of field changes
+  baseVersion   Int
+  status        String   // PENDING, APPROVED, REJECTED, APPLIED, ROLLED_BACK
+  createdBy     String
+  createdAt     DateTime @default(now())
+  appliedAt     DateTime?
+  rejectedAt    DateTime?
+
+  chat          Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  creator       User     @relation(fields: [createdBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  approvals     ChangeRequestApproval[]
+  versions      OrderVersion[]
+
+  @@index([chatId])
+  @@index([orderId])
+  @@index([status])
+  @@index([createdBy])
+}
+
+model ChangeRequestApproval {
+  id              String   @id @default(cuid())
+  changeRequestId String
+  approverId      String
+  decision        String   // APPROVED, REJECTED
+  comment         String?
+  createdAt       DateTime @default(now())
+
+  changeRequest   ChangeRequest @relation(fields: [changeRequestId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  approver        User     @relation(fields: [approverId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([changeRequestId])
+  @@index([approverId])
+}
+
+model OrderVersion {
+  id              String   @id @default(cuid())
+  changeRequestId String
+  chatId          String
+  version         Int
+  snapshot        String   // JSON string with order snapshot
+  diff            String?  // JSON string with changes
+  createdAt       DateTime @default(now())
+
+  changeRequest   ChangeRequest @relation(fields: [changeRequestId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  chat            Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([changeRequestId])
+  @@index([chatId])
+  @@index([version])
+}

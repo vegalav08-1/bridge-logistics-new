@@ -6,8 +6,10 @@ import unusedImports from 'eslint-plugin-unused-imports';
 export default [
   js.configs.recommended,
   {
+    ignores: ['dist/**', 'node_modules/**', '**/*.d.ts', '**/*.js'],
+  },
+  {
     files: ['**/*.ts'],
-    ignores: ['dist/**', 'node_modules/**', '**/*.d.ts'],
     languageOptions: {
       parser: typescriptParser,
       parserOptions: {
@@ -16,6 +18,8 @@ export default [
       },
       globals: {
         process: 'readonly',
+        console: 'readonly',
+        Buffer: 'readonly',
       },
     },
     plugins: {

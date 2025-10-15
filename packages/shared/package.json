@@ -3,8 +3,11 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "exports": "./index.ts",
-  "types": "./index.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./qr": "./dist/src/qr.js"
+  },
+  "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc -p tsconfig.json",

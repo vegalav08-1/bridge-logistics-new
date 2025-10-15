@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "dist",
+    "moduleResolution": "bundler",
+    "module": "ESNext",
+    "target": "ES2022",
+    "strict": true,
+    "types": ["node"],
+  },
+  "include": ["./src/**/*.ts", "./index.ts"],
+  "exclude": ["eslint.config.js"]
+}

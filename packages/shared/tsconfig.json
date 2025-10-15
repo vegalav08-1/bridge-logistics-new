@@ -7,7 +7,9 @@
     "moduleResolution": "bundler",
     "module": "ESNext",
     "target": "ES2022",
-    "strict": true
+    "strict": true,
+    "noEmit": false
   },
-  "include": ["./**/*.ts"]
+  "include": ["./**/*.ts"],
+  "exclude": ["eslint.config.js", "dist/**/*"]
 }

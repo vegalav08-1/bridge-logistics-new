@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="2" failures="0" errors="0" time="2.48">
+    <testsuite name="tests/property/money.prop.spec.ts" timestamp="2025-10-05T21:32:01.429Z" hostname="appledeMacBook-Air.local" tests="1" failures="0" errors="0" skipped="0" time="0.072">
+        <testcase classname="tests/property/money.prop.spec.ts" name="prop: math properties &gt; addition is commutative" time="0.069">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/example.spec.ts" timestamp="2025-10-05T21:32:01.434Z" hostname="appledeMacBook-Air.local" tests="1" failures="0" errors="0" skipped="0" time="0.013">
+        <testcase classname="tests/unit/example.spec.ts" name="math example &gt; adds numbers" time="0.01">
+        </testcase>
+    </testsuite>
+</testsuites>
