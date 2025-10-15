@@ -1,0 +1,78 @@
+name: Deploy Documentation
+
+on:
+  push:
+    branches: [main]
+    paths: ['docs/**', 'README.md', '*.md']
+  workflow_dispatch:
+
+jobs:
+  deploy-docs:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: '8'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build documentation
+        run: |
+          # Create docs directory structure
+          mkdir -p docs
+          
+          # Copy README as index
+          cp README.md docs/index.md
+          
+          # Copy all markdown files
+          find . -name "*.md" -not -path "./node_modules/*" -not -path "./.git/*" -exec cp {} docs/ \;
+          
+          # Create navigation
+          cat > docs/_config.yml << EOF
+          title: Bridge Logistics Documentation
+          description: Modern logistics management system
+          theme: jekyll-theme-minimal
+          navigation:
+            - Home: index.md
+            - Setup: GITHUB_SETUP.md
+            - API: packages/api/README.md
+            - Database: packages/db/README.md
+            - Files: packages/files/README.md
+            - Realtime: packages/realtime/README.md
+            - Search: packages/search/README.md
+            - UI: packages/ui/README.md
+          EOF
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: docs
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
+
+      - name: Notify deployment
+        if: success()
+        run: |
+          echo "📚 Documentation deployed to GitHub Pages!"
+          echo "URL: https://${{ github.repository_owner }}.github.io/bridge-logistics"

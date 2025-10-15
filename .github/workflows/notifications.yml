@@ -1,0 +1,95 @@
+name: Notifications
+
+on:
+  workflow_run:
+    workflows: ["CI/CD Pipeline"]
+    types: [completed]
+  push:
+    branches: [main, develop]
+  pull_request:
+    types: [opened, closed, merged]
+
+jobs:
+  notify:
+    name: Send Notifications
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Notify Slack
+        if: env.SLACK_WEBHOOK_URL
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#bridge-logistics'
+          text: |
+            🚀 **Bridge Logistics CI/CD**
+            
+            **Status**: ${{ job.status == 'success' && '✅ Success' || '❌ Failed' }}
+            **Workflow**: ${{ github.workflow }}
+            **Branch**: ${{ github.ref_name }}
+            **Commit**: ${{ github.sha }}
+            **Author**: ${{ github.actor }}
+            
+            **Details**:
+            - Repository: ${{ github.repository }}
+            - Event: ${{ github.event_name }}
+            - URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            
+            ${{ job.status == 'success' && '🎉 Deployment successful!' || '⚠️ Please check the logs for details.' }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Notify Discord
+        if: env.DISCORD_WEBHOOK_URL
+        uses: Ilshidur/action-discord@master
+        with:
+          args: |
+            🚀 **Bridge Logistics CI/CD**
+            
+            **Status**: ${{ job.status == 'success' && '✅ Success' || '❌ Failed' }}
+            **Workflow**: ${{ github.workflow }}
+            **Branch**: ${{ github.ref_name }}
+            **Commit**: ${{ github.sha }}
+            **Author**: ${{ github.actor }}
+            
+            **Details**:
+            - Repository: ${{ github.repository }}
+            - Event: ${{ github.event_name }}
+            - URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            
+            ${{ job.status == 'success' && '🎉 Deployment successful!' || '⚠️ Please check the logs for details.' }}
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+      - name: Notify Email
+        if: env.SMTP_USER && env.SMTP_PASS
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_HOST || 'smtp.gmail.com' }}
+          server_port: ${{ secrets.SMTP_PORT || 587 }}
+          username: ${{ secrets.SMTP_USER }}
+          password: ${{ secrets.SMTP_PASS }}
+          subject: |
+            Bridge Logistics CI/CD - ${{ job.status == 'success' && 'Success' || 'Failed' }}
+          to: ${{ secrets.NOTIFICATION_EMAIL }}
+          from: ${{ secrets.SMTP_USER }}
+          body: |
+            <h2>🚀 Bridge Logistics CI/CD Notification</h2>
+            
+            <p><strong>Status:</strong> ${{ job.status == 'success' && '✅ Success' || '❌ Failed' }}</p>
+            <p><strong>Workflow:</strong> ${{ github.workflow }}</p>
+            <p><strong>Branch:</strong> ${{ github.ref_name }}</p>
+            <p><strong>Commit:</strong> ${{ github.sha }}</p>
+            <p><strong>Author:</strong> ${{ github.actor }}</p>
+            
+            <h3>Details:</h3>
+            <ul>
+              <li>Repository: ${{ github.repository }}</li>
+              <li>Event: ${{ github.event_name }}</li>
+              <li>URL: <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Details</a></li>
+            </ul>
+            
+            ${{ job.status == 'success' && '<p style="color: green;">🎉 Deployment successful!</p>' || '<p style="color: red;">⚠️ Please check the logs for details.</p>' }}
+            
+            <hr>
+            <p><small>This is an automated message from Bridge Logistics CI/CD system.</small></p>
