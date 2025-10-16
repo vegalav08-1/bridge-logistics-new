@@ -1,0 +1,134 @@
+{
+  "auditDate": "2025-01-16T20:30:00Z",
+  "systemVersion": "1.0.0",
+  "vulnerabilities": {
+    "critical": 0,
+    "high": 2,
+    "medium": 3,
+    "low": 1
+  },
+  "issues": [
+    {
+      "id": "SEC-001",
+      "severity": "high",
+      "category": "authentication",
+      "title": "Weak JWT Secret in Development",
+      "description": "JWT_SECRET uses default development value 'dev_jwt_secret_change_in_production'",
+      "file": ".env",
+      "line": 2,
+      "impact": "Authentication bypass possible in production",
+      "recommendation": "Use strong, unique JWT secret in production environment",
+      "status": "open"
+    },
+    {
+      "id": "SEC-002", 
+      "severity": "high",
+      "category": "dependencies",
+      "title": "Vulnerable Dependencies",
+      "description": "Found 2 moderate vulnerabilities in dependencies",
+      "details": [
+        {
+          "package": "esbuild",
+          "version": "<=0.24.2",
+          "vulnerability": "enables any website to send requests to development server",
+          "patched": ">=0.25.0"
+        },
+        {
+          "package": "nodemailer", 
+          "version": "<7.0.7",
+          "vulnerability": "Email to unintended domain due to Interpretation Conflict",
+          "patched": ">=7.0.7"
+        }
+      ],
+      "recommendation": "Update vulnerable packages to patched versions",
+      "status": "open"
+    },
+    {
+      "id": "SEC-003",
+      "severity": "medium", 
+      "category": "authorization",
+      "title": "Temporary SUPER_ADMIN Bypass",
+      "description": "Temporary authorization bypass for SUPER_ADMIN role without proper validation",
+      "file": "apps/web/src/app/api/shipments/[id]/messages/route.ts",
+      "line": 101,
+      "impact": "Potential privilege escalation",
+      "recommendation": "Remove temporary bypass and implement proper authorization checks",
+      "status": "open"
+    },
+    {
+      "id": "SEC-004",
+      "severity": "medium",
+      "category": "file-upload",
+      "title": "Missing File Size Validation",
+      "description": "No file size limits enforced during upload process",
+      "file": "apps/web/src/app/api/files/upload/complete/route.ts",
+      "line": 92,
+      "impact": "Potential DoS through large file uploads",
+      "recommendation": "Implement file size limits and validation",
+      "status": "open"
+    },
+    {
+      "id": "SEC-005",
+      "severity": "medium",
+      "category": "data-validation",
+      "title": "Insufficient Input Validation",
+      "description": "Missing validation for chat existence before message creation",
+      "file": "apps/web/src/app/api/shipments/[id]/messages/route.ts",
+      "line": 97,
+      "impact": "Potential data integrity issues",
+      "recommendation": "Add comprehensive input validation",
+      "status": "open"
+    },
+    {
+      "id": "SEC-006",
+      "severity": "low",
+      "category": "logging",
+      "title": "Insufficient Security Logging",
+      "description": "Limited security event logging for authentication and authorization",
+      "files": ["apps/web/src/lib/auth/", "packages/api/src/"],
+      "impact": "Difficult to detect security incidents",
+      "recommendation": "Implement comprehensive security logging",
+      "status": "open"
+    }
+  ],
+  "recommendations": {
+    "immediate": [
+      "Update vulnerable dependencies to patched versions",
+      "Replace development JWT secret with strong production secret",
+      "Remove temporary SUPER_ADMIN bypass"
+    ],
+    "short-term": [
+      "Implement file size validation and limits",
+      "Add comprehensive input validation",
+      "Enhance security logging and monitoring"
+    ],
+    "long-term": [
+      "Implement security headers (CSP, HSTS, etc.)",
+      "Add rate limiting to API endpoints",
+      "Implement security scanning in CI/CD pipeline"
+    ]
+  },
+  "compliance": {
+    "owasp-top-10": {
+      "a01-broken-access-control": "medium",
+      "a02-cryptographic-failures": "low", 
+      "a03-injection": "low",
+      "a04-insecure-design": "medium",
+      "a05-security-misconfiguration": "high",
+      "a06-vulnerable-components": "high",
+      "a07-identification-failures": "medium",
+      "a08-software-data-integrity": "low",
+      "a09-security-logging": "medium",
+      "a10-server-side-request-forgery": "low"
+    }
+  },
+  "riskAssessment": {
+    "overallRisk": "medium",
+    "factors": [
+      "Development secrets in production environment",
+      "Vulnerable dependencies with known exploits", 
+      "Insufficient input validation",
+      "Missing security controls"
+    ]
+  }
+}
