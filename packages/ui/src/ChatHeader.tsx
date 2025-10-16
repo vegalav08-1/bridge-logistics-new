@@ -74,3 +74,6 @@ export function ChatHeader({ number, type, status, onBack }: ChatHeaderProps) {
 
 
 
+
+
+

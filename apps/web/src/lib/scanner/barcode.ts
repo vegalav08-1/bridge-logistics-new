@@ -6,3 +6,6 @@ export async function decodeFrame(_canvas: HTMLCanvasElement): Promise<BarcodeRe
 }
 
 
+
+
+

@@ -56,3 +56,5 @@ export async function getBalance(chatId: string, base: 'RUB' | Currency = 'RUB')
 }
 
 
+
+

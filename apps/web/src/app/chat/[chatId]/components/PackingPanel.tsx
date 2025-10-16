@@ -27,3 +27,6 @@ export default function PackingPanel({ shipmentId }: { shipmentId: string }) {
 }
 
 
+
+
+

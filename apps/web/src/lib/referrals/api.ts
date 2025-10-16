@@ -42,3 +42,5 @@ export async function detachPartner(partnerId: string): Promise<{ ok: true }> {
   return { ok: true }; 
 }
 
+
+

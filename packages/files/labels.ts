@@ -76,7 +76,7 @@ const LABEL_DIMENSIONS = {
  */
 export async function generateLabel(
   data: LabelData,
-  options: LabelOptions = {}
+  options: LabelOptions = { format: 'A6' }
 ): Promise<LabelResult> {
   const {
     format = 'A6',
@@ -453,4 +453,7 @@ export async function createShipmentLabel(
     includeLogo: true,
   });
 }
+
+
+
 

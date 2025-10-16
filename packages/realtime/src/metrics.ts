@@ -28,6 +28,8 @@ interface Metrics {
   maxLatencyMs: number;
   
   // Error metrics
+  issuesTotal: number;
+  issuesByType: Record<string, number>;
   errorsTotal: number;
   errorsByType: Record<string, number>;
 }
@@ -48,6 +50,8 @@ class MetricsCollector {
     subscriptionsTotal: 0,
     avgLatencyMs: 0,
     maxLatencyMs: 0,
+    issuesTotal: 0,
+    issuesByType: {},
     errorsTotal: 0,
     errorsByType: {},
   };
@@ -132,8 +136,8 @@ class MetricsCollector {
 
   // Error metrics
   recordError(errorType: string, error: Error): void {
-    this.metrics.errorsTotal++;
-    this.metrics.errorsByType[errorType] = (this.metrics.errorsByType[errorType] || 0) + 1;
+    this.metrics.issuesTotal++;
+    this.metrics.issuesByType[errorType] = (this.metrics.issuesByType[errorType] || 0) + 1;
     this.log('error.recorded', { 
       type: errorType, 
       message: error.message,
@@ -156,7 +160,7 @@ class MetricsCollector {
            `${m.eventsDelivered} delivered, ${m.eventsFailed} failed. ` +
            `Rooms: ${m.roomsActive} active, ${m.subscriptionsTotal} subscriptions. ` +
            `Latency: avg ${m.avgLatencyMs.toFixed(1)}ms, max ${m.maxLatencyMs}ms. ` +
-           `Errors: ${m.errorsTotal} total.`;
+           `Errors: ${m.issuesTotal} total.`;
   }
 
   // Reset metrics (useful for testing)
@@ -176,6 +180,8 @@ class MetricsCollector {
       subscriptionsTotal: 0,
       avgLatencyMs: 0,
       maxLatencyMs: 0,
+      issuesTotal: 0,
+      issuesByType: {},
       errorsTotal: 0,
       errorsByType: {},
     };
@@ -238,7 +244,7 @@ export function getPrometheusMetrics(): string {
     '',
     '# HELP realtime_errors_total Total number of errors',
     '# TYPE realtime_errors_total counter',
-    `realtime_errors_total ${m.errorsTotal}`,
+    `realtime_errors_total ${m.issuesTotal}`,
   ].join('\n');
 }
 
@@ -251,7 +257,7 @@ export function getHealthStatus(): { status: 'healthy' | 'degraded' | 'unhealthy
   
   // Check error rate
   const totalOperations = m.messagesReceived + m.messagesSent + m.eventsPublished;
-  const errorRate = totalOperations > 0 ? m.errorsTotal / totalOperations : 0;
+  const errorRate = totalOperations > 0 ? m.issuesTotal / totalOperations : 0;
   
   if (errorRate > 0.1) { // 10% error rate
     status = 'unhealthy';
@@ -276,6 +282,9 @@ export function getHealthStatus(): { status: 'healthy' | 'degraded' | 'unhealthy
   
   return { status, metrics: m };
 }
+
+
+
 
 
 

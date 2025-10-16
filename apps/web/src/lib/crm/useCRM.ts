@@ -25,3 +25,5 @@ export function useCRM(id: string, kind: 'USER' | 'PARTNER') {
   return { profile, kpi, timeline, loading, reload: load, save, refreshKPI, setTimeline };
 }
 
+
+

@@ -18,3 +18,6 @@ export default function PartnerList({ items }: { items: Partner[] }) {
   );
 }
 
+
+
+

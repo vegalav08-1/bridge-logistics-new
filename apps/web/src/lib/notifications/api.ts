@@ -22,3 +22,5 @@ export async function seedNotifs(list: Notif[]) {
   MEMORY = list; 
 } // dev helper
 
+
+

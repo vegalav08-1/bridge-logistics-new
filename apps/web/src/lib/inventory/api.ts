@@ -39,3 +39,5 @@ export async function generateLabel(payload: { id: string; format: 'QR' | 'BARCO
 }
 
 
+
+

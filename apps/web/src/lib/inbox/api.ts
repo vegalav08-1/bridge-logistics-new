@@ -17,3 +17,5 @@ export async function markAsRead(id: string) { await wait(100); return true; }
 export async function markAllAsRead() { await wait(200); return true; }
 
 
+
+

@@ -53,3 +53,6 @@ export default function ReceivePartialDialog({ open, onClose, onSubmit, lines }:
 }
 
 
+
+
+

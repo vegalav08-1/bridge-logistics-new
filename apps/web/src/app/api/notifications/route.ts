@@ -19,10 +19,23 @@ export async function GET(request: NextRequest) {
     const payload: any = verifyAccess(accessToken);
     const userId = payload.sub;
 
-    // Параметры запроса
+    // Параметры запроса с валидацией
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
+    
+    // Валидация page
+    const pageParam = searchParams.get('page') || '1';
+    const page = Math.max(1, parseInt(pageParam));
+    if (isNaN(page)) {
+      return NextResponse.json({ error: 'Invalid page parameter' }, { status: 400 });
+    }
+    
+    // Валидация limit
+    const limitParam = searchParams.get('limit') || '20';
+    const limit = Math.min(Math.max(1, parseInt(limitParam)), 100);
+    if (isNaN(limit)) {
+      return NextResponse.json({ error: 'Invalid limit parameter' }, { status: 400 });
+    }
+    
     const type = searchParams.get('type');
     const isRead = searchParams.get('isRead');
     const search = searchParams.get('search');

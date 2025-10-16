@@ -108,3 +108,6 @@ export async function generateQRLabelPDF(data: QRLabelData): Promise<Buffer> {
 
 
 
+
+
+

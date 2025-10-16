@@ -8,3 +8,6 @@ export const joinByTokenSchema = z.object({
   urlOrToken: z.string().min(6)         // полная ссылка или токен
 });
 
+
+
+

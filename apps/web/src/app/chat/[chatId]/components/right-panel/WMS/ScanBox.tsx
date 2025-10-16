@@ -17,3 +17,5 @@ export default function ScanBox({ onValue }: { onValue: (v: string) => void }) {
   );
 }
 
+
+

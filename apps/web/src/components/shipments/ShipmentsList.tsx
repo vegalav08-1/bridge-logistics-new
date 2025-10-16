@@ -84,3 +84,6 @@ export default function ShipmentsList({ initialQuery, onEmptyCTA }: Props) {
 }
 
 
+
+
+

@@ -24,3 +24,5 @@ export function useScanner() {
   return { ref, active, setActive, value, setValue };
 }
 
+
+

@@ -68,3 +68,6 @@ export default function SystemCard({ msg, onOpenOffer, onOpenQR }: Props) {
 }
 
 
+
+
+

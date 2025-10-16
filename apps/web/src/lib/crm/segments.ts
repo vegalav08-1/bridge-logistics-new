@@ -9,3 +9,6 @@ export async function resolveSegments(profile: CRMProfile): Promise<SegmentKey[]
   return Array.from(new Set(base));
 }
 
+
+
+

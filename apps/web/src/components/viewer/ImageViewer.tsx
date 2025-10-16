@@ -65,3 +65,5 @@ export default function ImageViewer({ src, annotations, onAddAnnotation }: Props
 }
 
 
+
+

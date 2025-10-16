@@ -30,3 +30,5 @@ export default function PartnerShipmentsList({ items, onLoadMore, hasMore, loadi
   );
 }
 
+
+

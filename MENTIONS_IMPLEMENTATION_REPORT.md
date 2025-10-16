@@ -103,3 +103,5 @@ const mentionUsers: MentionUser[] = [
 
 Функционал @mentions полностью интегрирован в нижнее окно ввода (Composer) и готов к использованию!
 
+
+

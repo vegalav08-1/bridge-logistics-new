@@ -9,3 +9,6 @@ export function useSegments(profile: CRMProfile | null) {
   return { segments };
 }
 
+
+
+

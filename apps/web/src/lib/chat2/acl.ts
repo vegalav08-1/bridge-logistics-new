@@ -16,3 +16,5 @@ export function myParticipant(chat: Chat, meId: string): Participant|undefined {
   return chat.participants.find(p => p.userId === meId);
 }
 
+
+

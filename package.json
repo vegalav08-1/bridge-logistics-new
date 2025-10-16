@@ -88,5 +88,11 @@
     "@types/cors": "^2.8.19",
     "cors": "^2.8.5",
     "pdf-lib": "^1.17.1"
+  },
+  "pnpm": {
+    "overrides": {
+      "esbuild": "^0.25.0",
+      "nodemailer": "^7.0.7"
+    }
   }
 }

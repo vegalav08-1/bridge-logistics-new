@@ -9,3 +9,6 @@ export default function LineageBadge({ count, onClick }:{ count:number; onClick:
 }
 
 
+
+
+

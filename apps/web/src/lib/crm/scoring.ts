@@ -7,3 +7,6 @@ export function riskScore(k: KPI): number {
   return Math.min(100, s);
 }
 
+
+
+

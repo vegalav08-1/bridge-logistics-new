@@ -20,3 +20,5 @@ export default function HeaderCard({ name, id, kind, segments }: {
   );
 }
 
+
+

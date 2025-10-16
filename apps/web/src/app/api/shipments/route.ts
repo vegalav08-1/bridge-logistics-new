@@ -19,14 +19,21 @@ export async function GET(request: NextRequest) {
     const userId = payload.sub;
     const userRole = payload.role;
 
-    // Получаем все чаты, где пользователь является участником
+    // Получаем все чаты, где пользователь является участником (оптимизированный запрос)
     const userChats = await prisma.chatMember.findMany({
       where: { userId },
-      include: {
+      select: {
         chat: {
-          include: {
+          select: {
+            id: true,
+            number: true,
+            type: true,
+            status: true,
+            updatedAt: true,
             members: {
-              include: {
+              select: {
+                userId: true,
+                role: true,
                 user: {
                   select: { id: true, email: true, role: true }
                 }
@@ -35,7 +42,11 @@ export async function GET(request: NextRequest) {
             messages: {
               orderBy: { seq: 'desc' },
               take: 1,
-              include: {
+              select: {
+                id: true,
+                kind: true,
+                payload: true,
+                createdAt: true,
                 author: {
                   select: { id: true, email: true, role: true }
                 }

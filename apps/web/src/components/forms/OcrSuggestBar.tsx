@@ -32,3 +32,6 @@ export default function OcrSuggestBar({ onApply }:{ onApply:(f:OcrResult['fields
 }
 
 
+
+
+

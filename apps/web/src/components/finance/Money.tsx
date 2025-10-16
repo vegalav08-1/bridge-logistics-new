@@ -6,3 +6,6 @@ export default function Money({ value, ccy }: { value: number; ccy: string }) {
 }
 
 
+
+
+

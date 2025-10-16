@@ -14,3 +14,5 @@ export default function PhotoStrip({ items, onPick }: { items: any[]; onPick: (f
   );
 }
 
+
+
