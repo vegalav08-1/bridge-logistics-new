@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { PackingService } from '../../../../../../packages/api/src/packing/service';
-import { presetUpdateSchema } from '../../../../../../packages/api/src/packing/validators';
+import { PackingService } from '@yp/api';
+import { presetUpdateSchema } from '@yp/api';
 import { FLAGS } from '@yp/shared';
 
 export async function PATCH(

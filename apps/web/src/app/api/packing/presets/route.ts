@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { PackingService } from '../../../../../packages/api/src/packing/service';
-import { presetCreateSchema } from '../../../../../packages/api/src/packing/validators';
+import { PackingService } from '@yp/api';
+import { presetCreateSchema } from '@yp/api';
 import { FLAGS } from '@yp/shared';
 
 export async function GET(request: NextRequest) {

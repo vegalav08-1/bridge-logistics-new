@@ -22,3 +22,7 @@ export * from './src/state/index';
 // S13 notifications
 export * from './src/notifications/service';
 export * from './src/notifications/websocket';
+// S14 packing
+export * from './src/packing/labels';
+export * from './src/packing/service';
+export * from './src/packing/validators';

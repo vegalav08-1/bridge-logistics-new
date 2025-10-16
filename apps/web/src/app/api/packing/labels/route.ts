@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { LabelGenerator } from '../../../../../packages/api/src/packing/labels';
-import { labelsGenerateSchema } from '../../../../../packages/api/src/packing/validators';
+import { LabelGenerator } from '@yp/api';
+import { labelsGenerateSchema } from '@yp/api';
 import { FLAGS } from '@yp/shared';
 
 export async function POST(request: NextRequest) {
