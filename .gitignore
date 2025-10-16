@@ -122,4 +122,4 @@ playwright-report/
 playwright/.cache/
 
 # Local development
-.local/
+.local/minio-server/
