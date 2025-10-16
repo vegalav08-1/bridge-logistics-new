@@ -221,8 +221,8 @@ export const defaultAlertRules: AlertRule[] = [
     name: 'high_error_rate',
     condition: (metrics) => {
       const stats = metrics.getStats();
-      const totalErrors = Object.values(stats.errors).reduce((a, b) => a + b, 0);
-      const totalActions = Object.values(stats.actions).reduce((a, b) => a + b, 0);
+      const totalErrors = Object.values(stats.errors).reduce((a: number, b: number) => a + b, 0);
+      const totalActions = Object.values(stats.actions).reduce((a: number, b: number) => a + b, 0);
       return totalActions > 0 && (totalErrors / totalActions) > 0.05; // >5% ошибок
     },
     severity: 'high',

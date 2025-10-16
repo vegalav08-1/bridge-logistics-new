@@ -69,3 +69,6 @@ export type LabelsGenerateInput = z.infer<typeof labelsGenerateSchema>;
 export type ParcelsBulkCreateInput = z.infer<typeof parcelsBulkCreateSchema>;
 
 
+
+
+

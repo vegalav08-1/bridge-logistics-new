@@ -39,7 +39,7 @@ router.post('/:chatId/transition', authenticateToken, async (req: any, res: any)
     if (!validation.success) {
       return res.status(400).json({
         error: 'Invalid request',
-        details: validation.error.errors,
+        details: validation.error.issues,
       });
     }
 

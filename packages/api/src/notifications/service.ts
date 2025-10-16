@@ -46,19 +46,19 @@ export async function createNotification(data: CreateNotificationData): Promise<
       const from = userSettings.quietHoursFrom;
       const to = userSettings.quietHoursTo;
 
-      // Проверяем, находимся ли мы в тихих часах
-      if (from !== null && to !== null) {
+      // Упрощенная логика тихих часов
+      const isInQuietHours = (currentHour: number, from: number, to: number) => {
         if (from <= to) {
-          // Обычный случай: 22:00 - 08:00
-          if (currentHour >= from || currentHour < to) {
-            return;
-          }
+          // Обычный случай: 22:00 - 08:00 (в пределах одного дня)
+          return currentHour >= from && currentHour < to;
         } else {
-          // Переход через полночь: 22:00 - 08:00
-          if (currentHour >= from || currentHour < to) {
-            return;
-          }
+          // Переход через полночь: 22:00 - 08:00 (следующий день)
+          return currentHour >= from || currentHour < to;
         }
+      };
+
+      if (isInQuietHours(currentHour, from, to)) {
+        return; // Не отправляем уведомление в тихие часы
       }
     }
 

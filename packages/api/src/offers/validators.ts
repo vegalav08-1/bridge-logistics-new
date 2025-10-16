@@ -147,7 +147,7 @@ export const duplicateRequestSchema = z.object({
 
 export const receiveShipmentSchema = z.object({
   mode: z.enum(['full', 'partial'], {
-    errorMap: () => ({ message: 'Режим должен быть "full" или "partial"' })
+    message: 'Режим должен быть "full" или "partial"'
   }),
   notes: z
     .string()

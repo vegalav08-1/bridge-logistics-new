@@ -86,7 +86,7 @@ router.post('/generate', authenticateToken, async (req: any, res: any) => {
     if (!dataValidation.success) {
       return res.status(400).json({
         error: 'Invalid label data',
-        details: dataValidation.error.errors,
+        details: dataValidation.error.issues,
       });
     }
 
@@ -94,7 +94,7 @@ router.post('/generate', authenticateToken, async (req: any, res: any) => {
     if (!optionsValidation.success) {
       return res.status(400).json({
         error: 'Invalid label options',
-        details: optionsValidation.error.errors,
+        details: optionsValidation.error.issues,
       });
     }
 
@@ -137,7 +137,7 @@ router.post('/shipment/:shipmentId', authenticateToken, async (req: any, res: an
     if (!validation.success) {
       return res.status(400).json({
         error: 'Invalid shipment label data',
-        details: validation.error.errors,
+        details: validation.error.issues,
       });
     }
 
@@ -229,7 +229,7 @@ router.post('/validate', authenticateToken, async (req: any, res: any) => {
     if (!dataValidation.success) {
       return res.status(400).json({
         valid: false,
-        errors: dataValidation.error.errors,
+        errors: dataValidation.error.issues,
       });
     }
 
@@ -248,4 +248,6 @@ router.post('/validate', authenticateToken, async (req: any, res: any) => {
 });
 
 export { router as labelsRouter };
+
+
 

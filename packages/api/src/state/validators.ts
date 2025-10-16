@@ -131,7 +131,7 @@ export function validateActionPayload(action: string, payload: unknown): { valid
     return { valid: true, data: result };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const errorMessages = error.errors.map(err => `${err.path.join('.')}: ${err.message}`).join(', ');
+      const errorMessages = error.issues.map(err => `${err.path.join('.')}: ${err.message}`).join(', ');
       return { valid: false, error: `Validation failed: ${errorMessages}` };
     }
     return { valid: false, error: 'Unknown validation error' };
@@ -261,6 +261,9 @@ export function createCancelPayload(data: Partial<CancelPayload>): CancelPayload
 export function createArchivePayload(data: Partial<ArchivePayload>): ArchivePayload {
   return ActionPayloadValidators[LOGISTICS_ACTIONS.ARCHIVE].parse(data);
 }
+
+
+
 
 
 

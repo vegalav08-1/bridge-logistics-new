@@ -17,11 +17,14 @@ export const createShipmentSchema = z.object({
 });
 
 export const createMessageSchema = z.object({
-  clientId: z.string().uuid().optional(),
+  clientId: z.string().uuid('Неверный формат UUID').optional(),
   kind: z.enum(['text', 'system']),
-  text: z.string().min(1).max(2000).optional(),
-  payload: z.record(z.any()).optional(),
+  text: z.string().min(1, 'Текст не может быть пустым').max(2000, 'Текст не должен превышать 2000 символов').optional(),
+  payload: z.record(z.string(), z.unknown()).optional(),
 });
+
+
+
 
 
 

@@ -136,6 +136,27 @@ export async function performTransition(
 
     // Выполняем транзакцию
     const result = await db.$transaction(async (tx) => {
+      // Проверяем на идемпотентность - если переход уже существует
+      if (nextStatus && nextStatus !== currentStatus) {
+        const existingTransition = await tx.shipmentTransition.findFirst({
+          where: {
+            chatId,
+            from: currentStatus,
+            to: nextStatus,
+            byUserId
+          }
+        });
+
+        if (existingTransition) {
+          // Переход уже существует, возвращаем успешный результат
+          return {
+            actionId: existingTransition.id,
+            auditId: existingTransition.id,
+            systemMessage: undefined
+          };
+        }
+      }
+
       // Создаём LogisticsAction
       const actionRecord = await tx.logisticsAction.create({
         data: {
