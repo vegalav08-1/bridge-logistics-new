@@ -28,6 +28,8 @@ export default function ShipmentsList({ initialQuery, onEmptyCTA }: Props) {
       setCursor(res.nextCursor);
       setEnd(!res.nextCursor);
     } catch (e: any) {
+      console.error('Error loading shipments:', e);
+      setError(e.message || 'Ошибка загрузки отгрузок');
       setError(e?.message ?? 'Failed to load');
     } finally {
       setLoading(false);
