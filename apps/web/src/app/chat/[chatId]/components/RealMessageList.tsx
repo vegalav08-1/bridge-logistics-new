@@ -8,6 +8,7 @@ import { Pin, User, Shield, Bot, Clock } from 'lucide-react';
 import { FileAttachment } from './FileAttachment';
 import { FileCarousel } from './FileCarousel';
 import MessageBubble from './MessageBubble';
+import PhotoGallery from './PhotoGallery';
 
 type Props = {
   chatId: string;
@@ -22,6 +23,11 @@ export default function RealMessageList({ chatId, messages: propMessages, onSend
   const [carouselFiles, setCarouselFiles] = useState<any[]>([]);
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [quotedMessage, setQuotedMessage] = useState<ChatMessage | null>(null);
+  
+  // Состояние для галереи фото
+  const [photoGalleryOpen, setPhotoGalleryOpen] = useState(false);
+  const [photoGalleryPhotos, setPhotoGalleryPhotos] = useState<any[]>([]);
+  const [photoGalleryIndex, setPhotoGalleryIndex] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Загрузка сообщений
@@ -159,11 +165,20 @@ export default function RealMessageList({ chatId, messages: propMessages, onSend
       console.log('Message failed to send:', tempId);
     }
 
+    // Обработчик для открытия галереи фото
+    function onOpenPhotoGallery(e: Event) {
+      const { photos, currentIndex } = (e as CustomEvent).detail;
+      setPhotoGalleryPhotos(photos);
+      setPhotoGalleryIndex(currentIndex);
+      setPhotoGalleryOpen(true);
+    }
+
     console.log('RealMessageList: registering event listeners for chatId:', chatId);
     chatBus.addEventListener('local-text', onLocalText);
     chatBus.addEventListener('local-file', onLocalFile);
     chatBus.addEventListener('ack', onAck);
     chatBus.addEventListener('fail', onFail);
+    window.addEventListener('openPhotoGallery', onOpenPhotoGallery);
     
     return () => {
       console.log('RealMessageList: removing event listeners for chatId:', chatId);
@@ -171,6 +186,7 @@ export default function RealMessageList({ chatId, messages: propMessages, onSend
       chatBus.removeEventListener('local-file', onLocalFile);
       chatBus.removeEventListener('ack', onAck);
       chatBus.removeEventListener('fail', onFail);
+      window.removeEventListener('openPhotoGallery', onOpenPhotoGallery);
     };
   }, [chatId]);
 
@@ -300,6 +316,23 @@ export default function RealMessageList({ chatId, messages: propMessages, onSend
         files={carouselFiles}
         currentIndex={carouselIndex}
         onDownload={handleFileDownload}
+      />
+
+      {/* Галерея фото */}
+      <PhotoGallery
+        isOpen={photoGalleryOpen}
+        onClose={() => setPhotoGalleryOpen(false)}
+        photos={photoGalleryPhotos}
+        currentIndex={photoGalleryIndex}
+        onDownload={(id) => {
+          const photo = photoGalleryPhotos.find(p => p.id === id);
+          if (photo?.url) {
+            const link = document.createElement('a');
+            link.href = photo.url;
+            link.download = photo.fileName || photo.name || 'photo';
+            link.click();
+          }
+        }}
       />
     </div>
   );

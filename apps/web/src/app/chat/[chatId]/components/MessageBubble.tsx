@@ -3,6 +3,7 @@ import { useState } from 'react';
 import type { ChatMessage } from '@/lib/chat/real-data';
 import { User, Shield, Bot } from 'lucide-react';
 import MessageContextMenu from './MessageContextMenu';
+import PhotoThumbnail from './PhotoThumbnail';
 
 export default function MessageBubble({
   message, isOwn, onCopy, onQuote
@@ -133,13 +134,75 @@ export default function MessageBubble({
 
         {/* Отображение файлов */}
         {message.attachments && message.attachments.length > 0 && (
-          <div className="mt-2 space-y-1">
-            {message.attachments.map((attachment: any, index: number) => (
-              <div key={index} className="text-xs opacity-70">
-                📎 {attachment.fileName || attachment.name || 'Файл'} 
-                ({Math.round((attachment.size || 0) / 1024)}KB)
-              </div>
-            ))}
+          <div className="mt-2">
+            {(() => {
+              const images = message.attachments.filter((att: any) => 
+                att.mime?.startsWith('image/') || 
+                att.fileName?.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i) ||
+                att.name?.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i)
+              );
+              const otherFiles = message.attachments.filter((att: any) => 
+                !att.mime?.startsWith('image/') && 
+                !att.fileName?.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i) &&
+                !att.name?.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i)
+              );
+
+              return (
+                <div className="space-y-2">
+                  {/* Фото миниатюры */}
+                  {images.length > 0 && (
+                    <div className={`grid gap-2 ${
+                      images.length === 1 ? 'grid-cols-1' :
+                      images.length === 2 ? 'grid-cols-2' :
+                      images.length === 3 ? 'grid-cols-2' :
+                      'grid-cols-2'
+                    }`}>
+                      {images.slice(0, 4).map((attachment: any, index: number) => (
+                        <PhotoThumbnail
+                          key={attachment.id || index}
+                          attachment={attachment}
+                          onView={(id) => {
+                            // Открываем галерею
+                            const event = new CustomEvent('openPhotoGallery', {
+                              detail: { photos: images, currentIndex: index }
+                            });
+                            window.dispatchEvent(event);
+                          }}
+                          onDownload={(id) => {
+                            // Скачиваем файл
+                            const attachment = images.find((att: any) => att.id === id);
+                            if (attachment?.url) {
+                              const link = document.createElement('a');
+                              link.href = attachment.url;
+                              link.download = attachment.fileName || attachment.name || 'photo';
+                              link.click();
+                            }
+                          }}
+                          className="max-w-[200px] sm:max-w-[250px] md:max-w-[300px]"
+                        />
+                      ))}
+                      {images.length > 4 && (
+                        <div className="flex items-center justify-center bg-gray-100 rounded-lg h-20 text-xs text-gray-500">
+                          +{images.length - 4} фото
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Остальные файлы */}
+                  {otherFiles.length > 0 && (
+                    <div className="space-y-1">
+                      {otherFiles.map((attachment: any, index: number) => (
+                        <div key={attachment.id || index} className="text-xs opacity-70 flex items-center gap-1">
+                          📎 {attachment.fileName || attachment.name || 'Файл'} 
+                          ({Math.round((attachment.size || 0) / 1024)}KB)
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         )}
 
