@@ -130,21 +130,21 @@ export default function ShipmentNewPage() {
           <div className="p-1 bg-blue-50 rounded-lg">
             <div className="text-xs text-gray-600">Количество коробок:</div>
             <div className="text-sm font-semibold text-blue-700">
-              {form.boxes?.length || 0} шт.
+              {typeof window !== 'undefined' ? (form.boxes?.length || 0) : 0} шт.
             </div>
           </div>
           
           <div className="p-1 bg-green-50 rounded-lg">
             <div className="text-xs text-gray-600">Общий вес:</div>
             <div className="text-sm font-semibold text-green-700">
-              {form.boxes?.reduce((total, box) => total + (box.weight || 0), 0).toFixed(1)} кг
+              {typeof window !== 'undefined' ? form.boxes?.reduce((total, box) => total + (box.weight || 0), 0).toFixed(1) : '0.0'} кг
             </div>
           </div>
           
           <div className="p-1 bg-blue-50 rounded-lg">
             <div className="text-xs text-gray-600">Общий объем:</div>
             <div className="text-sm font-semibold text-blue-700">
-              {(form.totalVolumeM3 || 0).toFixed(3)} м³
+              {typeof window !== 'undefined' ? (form.totalVolumeM3 || 0).toFixed(3) : '0.000'} м³
             </div>
           </div>
         </div>
@@ -162,7 +162,7 @@ export default function ShipmentNewPage() {
         <div className="mt-4 p-1 bg-green-50 rounded-lg">
           <div className="text-xs text-gray-600">Общая стоимость:</div>
           <div className="text-sm font-semibold text-green-700">
-            {(form.totalCost || 0).toLocaleString('ru-RU')} ₽
+            {typeof window !== 'undefined' ? (form.totalCost || 0).toLocaleString('ru-RU') : '0'} ₽
           </div>
         </div>
       </div>

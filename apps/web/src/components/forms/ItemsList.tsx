@@ -19,7 +19,7 @@ export default function ItemsList({ items, onChange, onTotalCostChange, errors }
 
   // Загружаем сохраненные данные при инициализации
   useEffect(() => {
-    if (!isInitialized) {
+    if (!isInitialized && typeof window !== 'undefined') {
       const savedItems = loadItemsFromStorage();
       if (savedItems.length > 0) {
         console.log('🔄 Восстанавливаем сохраненные товары:', savedItems);
@@ -110,7 +110,7 @@ export default function ItemsList({ items, onChange, onTotalCostChange, errors }
         </button>
       </div>
 
-      {(items || []).map((item, index) => {
+      {mounted && (items || []).map((item, index) => {
         const isCollapsed = isItemCollapsed(item.id);
         const hasContent = item.name.trim() || item.quantity > 0 || item.price > 0;
         

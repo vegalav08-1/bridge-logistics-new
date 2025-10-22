@@ -110,7 +110,7 @@ export default function BoxesList({ boxes, onChange, onTotalVolumeChange, errors
         </button>
       </div>
 
-      {(boxes || []).map((box, index) => {
+      {mounted && (boxes || []).map((box, index) => {
         const isCollapsed = isBoxCollapsed(box.id);
         const hasBoxContent = hasContent(box);
         const volume = calculateBoxVolume(box);
