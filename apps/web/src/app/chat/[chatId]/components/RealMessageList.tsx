@@ -9,6 +9,7 @@ import { FileAttachment } from './FileAttachment';
 import { FileCarousel } from './FileCarousel';
 import MessageBubble from './MessageBubble';
 import PhotoGallery from './PhotoGallery';
+import InlinePhotoViewer from './InlinePhotoViewer';
 
 type Props = {
   chatId: string;
@@ -28,6 +29,11 @@ export default function RealMessageList({ chatId, messages: propMessages, onSend
   const [photoGalleryOpen, setPhotoGalleryOpen] = useState(false);
   const [photoGalleryPhotos, setPhotoGalleryPhotos] = useState<any[]>([]);
   const [photoGalleryIndex, setPhotoGalleryIndex] = useState(0);
+  
+  // Состояние для встроенного просмотрщика фото
+  const [inlinePhotoViewerOpen, setInlinePhotoViewerOpen] = useState(false);
+  const [inlinePhotoViewerPhotos, setInlinePhotoViewerPhotos] = useState<any[]>([]);
+  const [inlinePhotoViewerIndex, setInlinePhotoViewerIndex] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Загрузка сообщений
@@ -168,9 +174,9 @@ export default function RealMessageList({ chatId, messages: propMessages, onSend
     // Обработчик для открытия галереи фото
     function onOpenPhotoGallery(e: Event) {
       const { photos, currentIndex } = (e as CustomEvent).detail;
-      setPhotoGalleryPhotos(photos);
-      setPhotoGalleryIndex(currentIndex);
-      setPhotoGalleryOpen(true);
+      setInlinePhotoViewerPhotos(photos);
+      setInlinePhotoViewerIndex(currentIndex);
+      setInlinePhotoViewerOpen(true);
     }
 
     console.log('RealMessageList: registering event listeners for chatId:', chatId);
@@ -332,6 +338,29 @@ export default function RealMessageList({ chatId, messages: propMessages, onSend
             link.download = photo.fileName || photo.name || 'photo';
             link.click();
           }
+        }}
+      />
+
+      {/* Встроенный просмотрщик фото */}
+      <InlinePhotoViewer
+        isOpen={inlinePhotoViewerOpen}
+        onClose={() => setInlinePhotoViewerOpen(false)}
+        photos={inlinePhotoViewerPhotos}
+        currentIndex={inlinePhotoViewerIndex}
+        onDownload={(id) => {
+          const photo = inlinePhotoViewerPhotos.find(p => p.id === id);
+          if (photo?.url) {
+            const link = document.createElement('a');
+            link.href = photo.url;
+            link.download = photo.fileName || photo.name || 'photo';
+            link.click();
+          }
+        }}
+        onOpenFullscreen={() => {
+          setInlinePhotoViewerOpen(false);
+          setPhotoGalleryPhotos(inlinePhotoViewerPhotos);
+          setPhotoGalleryIndex(inlinePhotoViewerIndex);
+          setPhotoGalleryOpen(true);
         }}
       />
     </div>
