@@ -127,7 +127,8 @@ export default function ShipmentNewPage() {
           errors={errors}
         /> */}
         
-        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Временно отключены поля отображения характеристик */}
+        {/* <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="p-1 bg-blue-50 rounded-lg">
             <div className="text-xs text-gray-600">Количество коробок:</div>
             <div className="text-sm font-semibold text-blue-700">
@@ -148,7 +149,7 @@ export default function ShipmentNewPage() {
               {typeof window !== 'undefined' ? (form.totalVolumeM3 || 0).toFixed(3) : '0.000'} м³
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* Товары */}
