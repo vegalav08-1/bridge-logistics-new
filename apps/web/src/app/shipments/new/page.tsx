@@ -49,7 +49,7 @@ export default function ShipmentNewPage() {
 
   useEffect(() => { saveDraft(FORM_KEY, form); }, [form]);
   useEffect(() => {
-    const onBeforeUnload = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    const onBeforeUnload = (e: any) => { e.preventDefault(); e.returnValue = ''; };
     window.addEventListener('beforeunload', onBeforeUnload);
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
   }, []);
@@ -63,7 +63,7 @@ export default function ShipmentNewPage() {
     try {
       const parsed = shipmentSchema.safeParse(form);
       if (!parsed.success) {
-        const e: any = {};
+        const e: Record<string, string> = {};
         parsed.error.issues.forEach(i => { e[i.path[0]] = i.message; });
         setErrors(e);
         return;
@@ -164,7 +164,7 @@ export default function ShipmentNewPage() {
         <div className="mt-4 p-1 bg-green-50 rounded-lg">
           <div className="text-xs text-gray-600">Общая стоимость:</div>
           <div className="text-sm font-semibold text-green-700">
-            {typeof window !== 'undefined' ? (form.totalCost || 0).toLocaleString('ru-RU') : '0'} ₽
+            {typeof window !== 'undefined' && form.totalCost ? form.totalCost.toLocaleString('ru-RU') : '0'} ₽
           </div>
         </div>
       </div>

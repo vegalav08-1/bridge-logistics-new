@@ -12,6 +12,7 @@ interface ItemsListProps {
   errors?: Record<string, string>;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function ItemsList({ items, onChange, onTotalCostChange, errors }: ItemsListProps) {
   const [collapsedItems, setCollapsedItems] = useState<Set<string>>(new Set());
   const [mounted, setMounted] = useState(false);
@@ -22,7 +23,7 @@ export default function ItemsList({ items, onChange, onTotalCostChange, errors }
     if (!isInitialized && typeof window !== 'undefined') {
       const savedItems = loadItemsFromStorage();
       if (savedItems.length > 0) {
-        console.log('🔄 Восстанавливаем сохраненные товары:', savedItems);
+        // console.log('🔄 Восстанавливаем сохраненные товары:', savedItems);
         onChange(savedItems);
       }
       setIsInitialized(true);
@@ -69,7 +70,7 @@ export default function ItemsList({ items, onChange, onTotalCostChange, errors }
     }
   };
 
-  const updateItem = (id: string, field: keyof ItemInput, value: any) => {
+  const updateItem = (id: string, field: keyof ItemInput, value: string | number | string[]) => {
     const newItems = (items || []).map(item => 
       item.id === id ? { ...item, [field]: value } : item
     );
@@ -103,7 +104,7 @@ export default function ItemsList({ items, onChange, onTotalCostChange, errors }
         <button
           type="button"
           onClick={addItem}
-          className="flex items-center gap-1 px-2 py-1 bg-[var(--brand)] text-white rounded-md hover:bg-[var(--brand-dark)] transition-all duration-200 hover:scale-[1.02] text-sm"
+          className="flex items-center gap-1 px-2 py-1 bg-[var(--brand)] text-white rounded-md hover:bg-green-500 transition-all duration-200 hover:scale-[1.02] text-sm"
         >
           <Plus className="h-3 w-3" />
           Добавить товар
@@ -112,7 +113,7 @@ export default function ItemsList({ items, onChange, onTotalCostChange, errors }
 
       {mounted && (items || []).map((item, index) => {
         const isCollapsed = isItemCollapsed(item.id);
-        const hasContent = item.name.trim() || item.quantity > 0 || item.price > 0;
+        // const hasContent = item.name.trim() || item.quantity > 0 || item.price > 0;
         
         return (
           <div 
