@@ -2,7 +2,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import Field from '@/components/forms/Field';
 import ItemsList from '@/components/forms/ItemsList';
-import BoxesList from '@/components/forms/BoxesList';
+// import BoxesList from '@/components/forms/BoxesList'; // Временно отключен
 import ArrivalAddressSelect from '@/components/forms/ArrivalAddressSelect';
 import AttachmentPicker from '@/components/forms/AttachmentPicker';
 import { shipmentSchema, type ShipmentFormInput, type ItemInput, type BoxInput } from '@/lib/forms/validators';
@@ -119,12 +119,13 @@ export default function ShipmentNewPage() {
       <div className="rounded-2xl border p-4 bg-white">
         
 
-        <BoxesList
+        {/* Временно отключен блок Посылки */}
+        {/* <BoxesList
           boxes={form.boxes}
           onChange={(boxes) => setField('boxes', boxes)}
           onTotalVolumeChange={(totalVolume) => setField('totalVolumeM3', totalVolume)}
           errors={errors}
-        />
+        /> */}
         
         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="p-1 bg-blue-50 rounded-lg">
