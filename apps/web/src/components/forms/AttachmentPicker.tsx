@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Paperclip, X } from 'lucide-react';
 
 type Props = {
@@ -9,11 +9,27 @@ type Props = {
 };
 
 export default function AttachmentPicker({ value, onChange, uploader }: Props) {
+  const [mounted, setMounted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [name, setName] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const pick = () => inputRef.current?.click();
+
+  if (!mounted) {
+    return (
+      <div className="flex items-center gap-2">
+        <div className="h-10 px-3 rounded-xl border inline-flex items-center gap-2">
+          <Paperclip className="h-4 w-4" />
+          Прикрепить файл (опц.)
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center gap-2">

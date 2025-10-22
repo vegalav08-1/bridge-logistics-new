@@ -10,9 +10,54 @@ function ensureChat(chatId:string){
   if(!CHATS[chatId]) {
     CHATS[chatId] = {
       id: chatId, orderId:`ORD_${chatId}`, title:`Chat ${chatId}`, visibility:'PRIVATE',
-      participants:[], settings:{ muteAll:false, allowMentionsOverride:true, allowExternalInvite:false }, createdAtISO:new Date().toISOString()
+      participants:[
+        { userId: 'user-1', role: 'ADMIN', joinedAtISO: new Date().toISOString(), displayName: 'Администратор' },
+        { userId: 'user-2', role: 'USER', joinedAtISO: new Date().toISOString(), displayName: 'Клиент' }
+      ], 
+      settings:{ muteAll:false, allowMentionsOverride:true, allowExternalInvite:false }, 
+      createdAtISO:new Date().toISOString()
     };
-    MSGS[chatId] = [];
+    MSGS[chatId] = [
+      {
+        id: 'msg-1',
+        chatId,
+        kind: 'text',
+        text: 'Добро пожаловать в Chat V2! 🎉\n\nЗдесь вы можете:\n• Использовать @упоминания\n• Закреплять сообщения\n• Отправлять финансовые данные',
+        authorId: 'user-1',
+        createdAtISO: new Date(Date.now() - 300000).toISOString(),
+        pinned: false
+      },
+      {
+        id: 'msg-2',
+        chatId,
+        kind: 'text',
+        text: 'Это тестовое сообщение от клиента. @Администратор, можете помочь с отгрузкой?',
+        authorId: 'user-2',
+        createdAtISO: new Date(Date.now() - 180000).toISOString(),
+        mentions: [{ userId: 'user-1', from: 45, to: 58 }],
+        pinned: false
+      },
+      {
+        id: 'msg-3',
+        chatId,
+        kind: 'finance',
+        text: 'Оплата за отгрузку',
+        authorId: 'user-1',
+        createdAtISO: new Date(Date.now() - 120000).toISOString(),
+        finance: { sign: '+', amount: 2500, currency: 'RUB', note: 'Оплата за доставку' },
+        pinned: false
+      },
+      {
+        id: 'msg-4',
+        chatId,
+        kind: 'system',
+        text: 'Статус отгрузки обновлен: В пути',
+        authorId: 'system',
+        createdAtISO: new Date(Date.now() - 60000).toISOString(),
+        systemType: 'status',
+        pinned: false
+      }
+    ];
   }
 }
 

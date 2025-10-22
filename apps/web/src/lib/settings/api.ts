@@ -9,6 +9,23 @@ let MEMORY: Settings = {
   receiptAddress: undefined
 };
 
+// Инициализация профиля из localStorage при загрузке
+const initializeProfileFromStorage = () => {
+  try {
+    const storedProfile = localStorage.getItem('user-profile');
+    if (storedProfile) {
+      const profile = JSON.parse(storedProfile);
+      MEMORY.profile = profile;
+      console.log('🔄 Профиль инициализирован из localStorage:', profile);
+    }
+  } catch (error) {
+    console.error('Ошибка инициализации профиля из localStorage:', error);
+  }
+};
+
+// Инициализируем профиль при загрузке модуля
+initializeProfileFromStorage();
+
 export async function fetchSettings(): Promise<Settings> {
   await wait(150);
   return structuredClone(MEMORY);
@@ -17,6 +34,17 @@ export async function fetchSettings(): Promise<Settings> {
 export async function saveSettings(patch: Partial<Settings>): Promise<Settings> {
   await wait(150);
   MEMORY = { ...MEMORY, ...patch, warehouses: patch.warehouses ?? MEMORY.warehouses };
+  
+  // Если сохраняется профиль, также сохраняем в localStorage
+  if (patch.profile) {
+    try {
+      localStorage.setItem('user-profile', JSON.stringify(patch.profile));
+      console.log('💾 Профиль сохранен в localStorage через saveSettings:', patch.profile);
+    } catch (error) {
+      console.error('Ошибка сохранения профиля в localStorage:', error);
+    }
+  }
+  
   return structuredClone(MEMORY);
 }
 

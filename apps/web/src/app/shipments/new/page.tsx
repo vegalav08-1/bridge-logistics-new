@@ -1,9 +1,11 @@
 'use client';
 import { useMemo, useState, useEffect } from 'react';
 import Field from '@/components/forms/Field';
-import PackTypeSelect from '@/components/forms/PackTypeSelect';
+import ItemsList from '@/components/forms/ItemsList';
+import BoxesList from '@/components/forms/BoxesList';
+import ArrivalAddressSelect from '@/components/forms/ArrivalAddressSelect';
 import AttachmentPicker from '@/components/forms/AttachmentPicker';
-import { shipmentSchema, type ShipmentFormInput } from '@/lib/forms/validators';
+import { shipmentSchema, type ShipmentFormInput, type ItemInput, type BoxInput } from '@/lib/forms/validators';
 import { loadDraft, saveDraft, clearDraft } from '@/lib/forms/drafts';
 import { uploadAttachment, createShipment } from '@/lib/forms/api';
 import { FORMS_V2_ENABLED } from '@/lib/flags';
@@ -17,9 +19,29 @@ export default function ShipmentNewPage() {
 
   const draft = useMemo(() => loadDraft<ShipmentFormInput>(FORM_KEY), []);
   const [form, setForm] = useState<ShipmentFormInput>(() => draft ?? {
-    partnerName: '', shortDesc: '', oldTracking: '',
-    packType: 'SCOTCH_BAG', arrivalAddress: '',
-    totalWeightKg: undefined, totalVolumeM3: undefined, boxesCount: undefined,
+    partnerName: '', shortDesc: '',
+    arrivalAddress: '',
+    items: [{
+      id: 'item_1',
+      name: '',
+      quantity: 0,
+      price: 0,
+      photos: [],
+      oldTracking: '',
+    }],
+    totalCost: 0,
+    totalWeightKg: undefined, totalVolumeM3: 0, boxesCount: undefined,
+    boxes: [{
+      id: 'box_1',
+      dimensions: {
+        length: undefined,
+        width: undefined,
+        height: undefined,
+      },
+      name: '',
+      weight: undefined,
+      photo: undefined,
+    }],
     attachmentId: undefined,
   });
   const [errors, setErrors] = useState<Partial<Record<keyof ShipmentFormInput, string>>>({});
@@ -57,10 +79,13 @@ export default function ShipmentNewPage() {
   if (!enabled) return <div className="p-6 text-sm text-gray-500">Legacy shipment form</div>;
 
   return (
-    <div className="px-4 pb-[72px] pt-[12px] max-w-[720px] mx-auto space-y-4">
+    <div className="px-4 pb-[72px] pt-[12px] max-w-[720px] mx-auto space-y-6">
       <h1 className="text-lg font-semibold">Новая отгрузка</h1>
 
+      {/* Основная информация */}
       <div className="rounded-2xl border p-4 space-y-4 bg-white">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Основная информация</h2>
+        
         <Field label="Партнёр" hint="Если задан из ветки — будет заполнено автоматически">
           <input
             value={form.partnerName ?? ''}
@@ -80,83 +105,95 @@ export default function ShipmentNewPage() {
           />
         </Field>
 
-        <Field label="Старый трек-номер" required error={errors.oldTracking}>
-          <input
-            value={form.oldTracking}
-            onChange={(e) => setField('oldTracking', e.target.value)}
-            placeholder="Например, LP123456789CN"
-            className="w-full h-11 rounded-xl border px-3"
-          />
-        </Field>
-
-        <Field label="Тип упаковки" required error={errors.packType}>
-          <PackTypeSelect
-            value={form.packType}
-            onChange={(v) => setField('packType', v)}
-            error={errors.packType}
-          />
-        </Field>
 
         <Field label="Адрес прибытия" required error={errors.arrivalAddress}>
-          <textarea
+          <ArrivalAddressSelect
             value={form.arrivalAddress}
-            onChange={(e) => setField('arrivalAddress', e.target.value)}
-            placeholder="Город, улица, ориентир..."
-            rows={3}
-            className="w-full rounded-xl border px-3 py-2"
+            onChange={(v) => setField('arrivalAddress', v)}
+            error={errors.arrivalAddress}
           />
         </Field>
+      </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <Field label="Вес, кг" hint="Опционально" error={errors.totalWeightKg}>
-            <input
-              inputMode="decimal"
-              value={form.totalWeightKg ?? ''}
-              onChange={(e) => setField('totalWeightKg', e.target.value as any)}
-              placeholder="например, 12.5"
-              className="w-full h-11 rounded-xl border px-3"
-            />
-          </Field>
-          <Field label="Объём, м³" hint="Опционально" error={errors.totalVolumeM3}>
-            <input
-              inputMode="decimal"
-              value={form.totalVolumeM3 ?? ''}
-              onChange={(e) => setField('totalVolumeM3', e.target.value as any)}
-              placeholder="например, 0.08"
-              className="w-full h-11 rounded-xl border px-3"
-            />
-          </Field>
-          <Field label="Коробок, шт." hint="Опционально" error={errors.boxesCount}>
-            <input
-              inputMode="numeric"
-              value={form.boxesCount ?? ''}
-              onChange={(e) => setField('boxesCount', e.target.value as any)}
-              placeholder="например, 3"
-              className="w-full h-11 rounded-xl border px-3"
-            />
-          </Field>
+      {/* Характеристики */}
+      <div className="rounded-2xl border p-4 bg-white">
+        
+
+        <BoxesList
+          boxes={form.boxes}
+          onChange={(boxes) => setField('boxes', boxes)}
+          onTotalVolumeChange={(totalVolume) => setField('totalVolumeM3', totalVolume)}
+          errors={errors}
+        />
+        
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="p-1 bg-blue-50 rounded-lg">
+            <div className="text-xs text-gray-600">Количество коробок:</div>
+            <div className="text-sm font-semibold text-blue-700">
+              {form.boxes?.length || 0} шт.
+            </div>
+          </div>
+          
+          <div className="p-1 bg-green-50 rounded-lg">
+            <div className="text-xs text-gray-600">Общий вес:</div>
+            <div className="text-sm font-semibold text-green-700">
+              {form.boxes?.reduce((total, box) => total + (box.weight || 0), 0).toFixed(1)} кг
+            </div>
+          </div>
+          
+          <div className="p-1 bg-blue-50 rounded-lg">
+            <div className="text-xs text-gray-600">Общий объем:</div>
+            <div className="text-sm font-semibold text-blue-700">
+              {(form.totalVolumeM3 || 0).toFixed(3)} м³
+            </div>
+          </div>
         </div>
+      </div>
 
-        <Field label="Вложение" hint="Необязательно: фото/схема/PDF">
+      {/* Товары */}
+      <div className="rounded-2xl border p-4 bg-white">
+        <ItemsList
+          items={form.items}
+          onChange={(items) => setField('items', items)}
+          onTotalCostChange={(totalCost) => setField('totalCost', totalCost)}
+          errors={errors}
+        />
+        
+        <div className="mt-4 p-1 bg-green-50 rounded-lg">
+          <div className="text-xs text-gray-600">Общая стоимость:</div>
+          <div className="text-sm font-semibold text-green-700">
+            {(form.totalCost || 0).toLocaleString('ru-RU')} ₽
+          </div>
+        </div>
+      </div>
+
+      {/* Файлы */}
+      <div className="rounded-2xl border p-4 bg-white">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Прикрепленные файлы</h2>
+        <Field label="Файл" hint="Опционально">
           <AttachmentPicker
             value={form.attachmentId}
-            onChange={(id) => setField('attachmentId', id)}
+            onChange={(v) => setField('attachmentId', v)}
             uploader={uploadAttachment}
           />
         </Field>
+      </div>
 
-        <div className="flex gap-2 pt-2">
-          <button
-            className="h-11 px-4 rounded-xl bg-[var(--brand)] text-white disabled:opacity-50"
-            disabled={busy}
-            onClick={submit}
-          >Создать отгрузку</button>
-
-          <button
-            className="h-11 px-4 rounded-xl border"
-            onClick={() => { clearDraft(FORM_KEY); history.back(); }}
-          >Отмена</button>
-        </div>
+      {/* Кнопки */}
+      <div className="flex gap-3">
+        <button
+          onClick={submit}
+          disabled={busy}
+          className="flex-1 h-11 rounded-xl bg-[var(--brand)] text-white font-medium disabled:opacity-50"
+        >
+          {busy ? 'Создание...' : 'Создать отгрузку'}
+        </button>
+        <button
+          onClick={() => router.back()}
+          className="px-4 h-11 rounded-xl border border-gray-300 text-gray-700"
+        >
+          Отмена
+        </button>
       </div>
     </div>
   );

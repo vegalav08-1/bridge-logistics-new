@@ -50,6 +50,7 @@ export interface ChatMessage {
     avatar?: string;
   };
   isPinned?: boolean;
+  quotedMessage?: ChatMessage;
   attachments?: Array<{
     id: string;
     fileName: string;
@@ -126,16 +127,137 @@ export const generateRealShipmentData = (chatId: string): ShipmentInfo => {
   };
 };
 
+// Новая функция для генерации системного сообщения на основе данных формы и профиля
+export const generateShipmentSystemMessage = (formData: any, userProfile: any): ChatMessage => {
+  const now = new Date();
+  
+  // Формируем информацию об отправителе на основе профиля
+  let senderInfo = '';
+  let contactInfo = '';
+  let addressInfo = '';
+  
+  if (userProfile) {
+    if (userProfile.type === 'individual') {
+      senderInfo = `**👤 Отправитель:** ${userProfile.firstName} ${userProfile.lastName}`;
+      contactInfo = `**📞 Телефон:** ${userProfile.phone}\n**📧 Email:** ${userProfile.email}`;
+      if (userProfile.clientCode) {
+        contactInfo += `\n**🔢 Номер клиента:** ${userProfile.clientCode}`;
+      }
+      addressInfo = `**📍 Адрес:** ${userProfile.address}, ${userProfile.city}, ${userProfile.postalCode}, ${userProfile.country}`;
+    } else if (userProfile.type === 'legal') {
+      senderInfo = `**🏢 Организация:** ${userProfile.companyName}`;
+      contactInfo = `**👤 Контактное лицо:** ${userProfile.contactPersonName}\n**💼 Должность:** ${userProfile.contactPersonPosition}\n**📞 Телефон:** ${userProfile.phone}\n**📧 Email:** ${userProfile.email}`;
+      if (userProfile.clientCode) {
+        contactInfo += `\n**🔢 Номер клиента:** ${userProfile.clientCode}`;
+      }
+      addressInfo = `**📍 Юридический адрес:** ${userProfile.legalAddress}\n**📍 Фактический адрес:** ${userProfile.actualAddress}`;
+    }
+  } else {
+    // Fallback данные
+    senderInfo = `**👤 Отправитель:** Пользователь`;
+    contactInfo = `**📧 Email:** user@example.com`;
+    addressInfo = `**📍 Адрес:** Не указан`;
+  }
+
+  // Формируем информацию о товарах
+  const itemsInfo = formData.items && formData.items.length > 0 
+    ? formData.items.map((item: any, index: number) => 
+        `• ${item.name || `Товар ${index + 1}`} (${item.quantity || 0} шт.) - ${(item.price || 0).toLocaleString('ru-RU')} ₽`
+      ).join('\n')
+    : 'Товары не указаны';
+
+  // Формируем информацию о посылках
+  const boxesInfo = formData.boxes && formData.boxes.length > 0
+    ? formData.boxes.map((box: any, index: number) => {
+        const volume = (box.dimensions?.length || 0) * (box.dimensions?.width || 0) * (box.dimensions?.height || 0) / 1000000;
+        const weight = box.weight || 0;
+        return `• ${box.name || `Посылка ${index + 1}`}: ${box.dimensions?.length || 0}×${box.dimensions?.width || 0}×${box.dimensions?.height || 0} см, ${weight} кг (${volume.toFixed(3)} м³)`;
+      }).join('\n')
+    : 'Посылки не указаны';
+
+  // Формируем общие характеристики
+  const totalWeight = formData.boxes?.reduce((total, box) => total + (box.weight || 0), 0) || 0;
+  const totalVolume = formData.totalVolumeM3 || 0;
+  const totalCost = formData.totalCost || 0;
+  const boxesCount = formData.boxes?.length || 0;
+
+  return {
+    id: `shipment-${Date.now()}`,
+    type: 'system',
+    content: `📦 **Информация об отгрузке**
+
+${senderInfo}
+
+${contactInfo}
+
+${addressInfo}
+
+**📦 Товары:**
+${itemsInfo}
+
+**📦 Посылки:**
+${boxesInfo}
+
+**📊 Общие характеристики:**
+• Общий вес: ${totalWeight} кг
+• Количество коробок: ${boxesCount} шт.
+• Общий объем: ${totalVolume.toFixed(3)} м³
+• Общая стоимость: ${totalCost.toLocaleString('ru-RU')} ₽
+
+**🎯 Адрес прибытия:**
+${formData.arrivalAddress || 'Не указан'}
+
+**📝 Описание:**
+${formData.shortDesc || 'Не указано'}
+
+**📅 Создано:** ${now.toLocaleString('ru-RU')}`,
+    timestamp: now.toISOString(),
+    isPinned: true,
+    metadata: {
+      action: 'shipment_info',
+      data: {
+        formData,
+        userProfile,
+        createdAt: now.toISOString()
+      }
+    }
+  };
+};
+
 export const generatePinnedMessage = (shipment: ShipmentInfo): ChatMessage => {
+  // Импортируем функцию для получения данных профиля
+  const { getProfileForSystemMessage } = require('@/lib/profile/user-profile');
+  
+  // Получаем данные профиля пользователя
+  const profileData = getProfileForSystemMessage();
+  
+  // Формируем информацию об отправителе на основе профиля или fallback данных
+  let senderInfo = '';
+  let contactInfo = '';
+  let addressInfo = '';
+  
+  if (profileData) {
+    // Используем данные из профиля пользователя
+    senderInfo = profileData.senderInfo;
+    contactInfo = profileData.contactInfo;
+    addressInfo = profileData.addressInfo;
+  } else {
+    // Fallback на старые данные из shipment
+    senderInfo = `**👤 Отправитель:** ${shipment.client.name}`;
+    contactInfo = `**📞 Телефон:** ${shipment.client.phone}\n**📧 Email:** ${shipment.client.email}`;
+    addressInfo = `**📍 Адрес:** ${shipment.client.address}`;
+  }
+
   return {
     id: `pinned-${shipment.id}`,
     type: 'system',
     content: `📦 **Информация об отгрузке ${shipment.number}**
 
-**👤 Отправитель:** ${shipment.client.name}
-**📞 Телефон:** ${shipment.client.phone}
-**📧 Email:** ${shipment.client.email}
-**📍 Адрес:** ${shipment.client.address}
+${senderInfo}
+
+${contactInfo}
+
+${addressInfo}
 
 **📦 Содержимое:**
 ${shipment.items.map(item => 
@@ -170,45 +292,8 @@ ${shipment.specialInstructions || 'Нет особых указаний'}
 
 export const generateInitialMessages = (shipment: ShipmentInfo): ChatMessage[] => {
   const pinnedMessage = generatePinnedMessage(shipment);
-  const now = new Date();
   
   return [
-    pinnedMessage,
-    {
-      id: `welcome-${shipment.id}`,
-      type: 'system',
-      content: `🎉 **Добро пожаловать в чат отгрузки ${shipment.number}!**
-
-Здесь вы можете отслеживать статус вашей отгрузки, общаться с логистами и получать уведомления о важных событиях.
-
-**Доступные действия:**
-• 📋 Просмотр информации об отгрузке (закреплено выше)
-• 📞 Связь с логистами
-• 📊 Отслеживание статуса
-• 📝 Добавление комментариев`,
-      timestamp: new Date(now.getTime() + 1000).toISOString(),
-      isPinned: false,
-      metadata: {
-        shipmentId: shipment.id,
-        action: 'welcome'
-      }
-    },
-    {
-      id: `status-${shipment.id}`,
-      type: 'auto',
-      content: `📋 **Статус отгрузки обновлен**
-
-Текущий статус: **${shipment.status}**
-Время обновления: ${now.toLocaleString('ru-RU')}
-
-Отгрузка создана и ожидает обработки. Наш менеджер свяжется с вами в ближайшее время для уточнения деталей.`,
-      timestamp: new Date(now.getTime() + 2000).toISOString(),
-      isPinned: false,
-      metadata: {
-        shipmentId: shipment.id,
-        action: 'status_update',
-        data: { status: shipment.status }
-      }
-    }
+    pinnedMessage
   ];
 };

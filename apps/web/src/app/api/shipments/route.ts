@@ -3,6 +3,58 @@ import { prisma } from '@yp/db';
 import { canAccessChat } from '@yp/api';
 import { FLAGS } from '@yp/shared';
 import { verifyAccess } from '@yp/api';
+import { createChatWithSummary } from '@yp/api';
+import { getUserProfile } from '../../../lib/profile/user-profile';
+import { generateShipmentSystemMessage } from '../../../lib/chat/real-data';
+
+export async function POST(request: NextRequest) {
+  if (!FLAGS.CHAT_SUMMARY_ON_CREATE) {
+    return NextResponse.json({ error: 'Chat feature is disabled' }, { status: 404 });
+  }
+
+  try {
+    const accessToken = request.headers.get('Authorization')?.split(' ')[1];
+    if (!accessToken) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    const payload: any = verifyAccess(accessToken);
+    const userId = payload.sub;
+    const userRole = payload.role;
+
+    const body = await request.json();
+    
+    // Получаем профиль пользователя
+    const userProfile = await getUserProfile();
+    
+    // Генерируем системное сообщение на основе данных формы и профиля
+    const systemMessage = generateShipmentSystemMessage(body, userProfile);
+    
+    // Создаем чат с системным сообщением
+    const result = await createChatWithSummary({
+      entity: 'shipment',
+      authorUserId: userId,
+      adminId: userId, // Временно используем того же пользователя как админа
+      summary: {
+        kind: 'summary',
+        entity: 'shipment',
+        data: {
+          status: 'NEW',
+          shipmentData: body,
+          userProfile: userProfile,
+          systemMessage: systemMessage
+        }
+      },
+      status: 'NEW'
+    });
+
+    return NextResponse.json({ id: result.id }, { status: 201 });
+
+  } catch (error: any) {
+    console.error('Error creating shipment:', error);
+    return NextResponse.json({ error: error.message || 'Failed to create shipment' }, { status: 500 });
+  }
+}
 
 export async function GET(request: NextRequest) {
   if (!FLAGS.CHAT_SUMMARY_ON_CREATE) {

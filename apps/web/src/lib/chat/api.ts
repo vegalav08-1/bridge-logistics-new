@@ -177,10 +177,14 @@ export async function getShipmentData(chatId: string): Promise<ShipmentInfo> {
  * Get chat messages
  */
 export async function getChatMessages(chatId: string): Promise<ChatMessage[]> {
+  console.log('getChatMessages: Loading messages for chatId:', chatId);
   // В реальном приложении здесь был бы API вызов
   // Для демонстрации генерируем начальные сообщения
   const shipment = await getShipmentData(chatId);
-  return generateInitialMessages(shipment);
+  console.log('getChatMessages: Shipment data:', shipment);
+  const messages = generateInitialMessages(shipment);
+  console.log('getChatMessages: Generated messages:', messages);
+  return messages;
 }
 
 /**

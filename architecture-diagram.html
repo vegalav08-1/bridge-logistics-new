@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bridge Logistics - Архитектурная диаграмма</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #00A86B 0%, #00C851 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 700;
+        }
+        
+        .header p {
+            margin: 10px 0 0 0;
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .diagram {
+            padding: 40px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            min-height: 800px;
+        }
+        
+        .layer {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+        
+        .layer:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-color: #00A86B;
+        }
+        
+        .layer h3 {
+            color: #00A86B;
+            margin: 0 0 20px 0;
+            font-size: 1.4em;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .component {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #00A86B;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .component h4 {
+            margin: 0 0 8px 0;
+            color: #2c3e50;
+            font-size: 1.1em;
+        }
+        
+        .component p {
+            margin: 0;
+            color: #6c757d;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        
+        .tech-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .tech-tag {
+            background: #00A86B;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+        
+        .data-flow {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin-top: 20px;
+        }
+        
+        .data-flow h3 {
+            color: white;
+            margin-bottom: 20px;
+        }
+        
+        .flow-step {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid rgba(255,255,255,0.3);
+        }
+        
+        .flow-step h4 {
+            margin: 0 0 8px 0;
+            color: white;
+        }
+        
+        .flow-step p {
+            margin: 0;
+            opacity: 0.9;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            margin: 5px 5px 5px 0;
+        }
+        
+        .status-running {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-ready {
+            background: #cce5ff;
+            color: #004085;
+        }
+        
+        .icon {
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Bridge Logistics</h1>
+            <p>Современная система управления логистикой</p>
+            <div style="margin-top: 15px;">
+                <span class="status-badge status-running">🟢 Система запущена</span>
+                <span class="status-badge status-ready">🌐 localhost:3002</span>
+            </div>
+        </div>
+        
+        <div class="diagram">
+            <!-- Frontend Layer -->
+            <div class="layer">
+                <h3><span class="icon">⚛️</span> Frontend (Next.js 14)</h3>
+                
+                <div class="component">
+                    <h4>📱 App Router</h4>
+                    <p>Современная маршрутизация Next.js 14</p>
+                    <div class="tech-stack">
+                        <span class="tech-tag">React 18</span>
+                        <span class="tech-tag">TypeScript</span>
+                        <span class="tech-tag">App Router</span>
+                    </div>
+                </div>
+                
+                <div class="component">
+                    <h4>🎨 UI Components</h4>
+                    <p>Переиспользуемые компоненты интерфейса</p>
+                    <div class="tech-stack">
+                        <span class="tech-tag">Tailwind</span>
+                        <span class="tech-tag">Lucide Icons</span>
+                        <span class="tech-tag">Responsive</span>
+                    </div>
+                </div>
+                
+                <div class="component">
+                    <h4>📦 Shipments</h4>
+                    <p>Управление отгрузками и трекинг</p>
+                    <div class="tech-stack">
+                        <span class="tech-tag">Forms</span>
+                        <span class="tech-tag">Validation</span>
+                        <span class="tech-tag">Real-time</span>
+                    </div>
+                </div>
+                
+                <div class="component">
+                    <h4>💬 Chat System</h4>
+                    <p>Система чатов для отгрузок</p>
+                    <div class="tech-stack">
+                        <span class="tech-tag">WebSocket</span>
+                        <span class="tech-tag">Messages</span>
+                        <span class="tech-tag">Attachments</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Backend Layer -->
+            <div class="layer">
+                <h3><span class="icon">🔧</span> Backend (Monorepo)</h3>
+                
+                <div class="component">
+                    <h4>🗄️ Database (Prisma)</h4>
+                    <p>SQLite для разработки, PostgreSQL для продакшена</p>
+                    <div class="tech-stack">
+                        <span class="tech-tag">Prisma ORM</span>
+                        <span class="tech-tag">SQLite</span>
+                        <span class="tech-tag">Migrations</span>
+                    </div>
+                </div>
+                
+                <div class="component">
+                    <h4>🌐 API Server</h4>
+                    <p>RESTful API с JWT аутентификацией</p>
+                    <div class="tech-stack">
+                        <span class="tech-tag">Next.js API</span>
+                        <span class="tech-tag">JWT</span>
+                        <span class="tech-tag">Zod</span>
+                    </div>
+                </div>
+                
+                <div class="component">
+                    <h4>📁 File Storage</h4>
+                    <p>MinIO для хранения файлов</p>
+                    <div class="tech-stack">
+                        <span class="tech-tag">MinIO</span>
+                        <span class="tech-tag">S3 Compatible</span>
+                        <span class="tech-tag">Local Storage</span>
+                    </div>
+                </div>
+                
+                <div class="component">
+                    <h4>🔍 Search Engine</h4>
+                    <p>Полнотекстовый поиск по отгрузкам</p>
+                    <div class="tech-stack">
+                        <span class="tech-tag">Full-text</span>
+                        <span class="tech-tag">Indexing</span>
+                        <span class="tech-tag">Filters</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Data Models -->
+            <div class="layer">
+                <h3><span class="icon">📊</span> Data Models</h3>
+                
+                <div class="component">
+                    <h4>👤 User Management</h4>
+                    <p>Система ролей и аутентификации</p>
+                    <div class="tech-stack">
+                        <span class="tech-tag">SUPER_ADMIN</span>
+                        <span class="tech-tag">ADMIN</span>
+                        <span class="tech-tag">USER</span>
+                    </div>
+                </div>
+                
+                <div class="component">
+                    <h4>📦 Shipment Status</h4>
+                    <p>Жизненный цикл отгрузки</p>
+                    <div class="tech-stack">
+                        <span class="tech-tag">REQUEST</span>
+                        <span class="tech-tag">NEW</span>
+                        <span class="tech-tag">IN_TRANSIT</span>
+                        <span class="tech-tag">DELIVERED</span>
+                    </div>
+                </div>
+                
+                <div class="component">
+                    <h4>💬 Chat System</h4>
+                    <p>Сообщения и вложения</p>
+                    <div class="tech-stack">
+                        <span class="tech-tag">Messages</span>
+                        <span class="tech-tag">Attachments</span>
+                        <span class="tech-tag">System</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Storage Layer -->
+            <div class="layer">
+                <h3><span class="icon">💾</span> Storage & Cache</h3>
+                
+                <div class="component">
+                    <h4>🗄️ Database</h4>
+                    <p>Основное хранилище данных</p>
+                    <div class="tech-stack">
+                        <span class="tech-tag">SQLite (Dev)</span>
+                        <span class="tech-tag">PostgreSQL (Prod)</span>
+                        <span class="tech-tag">Prisma</span>
+                    </div>
+                </div>
+                
+                <div class="component">
+                    <h4>💾 LocalStorage</h4>
+                    <p>Кэширование на клиенте</p>
+                    <div class="tech-stack">
+                        <span class="tech-tag">JWT Token</span>
+                        <span class="tech-tag">User Profile</span>
+                        <span class="tech-tag">Shipments</span>
+                    </div>
+                </div>
+                
+                <div class="component">
+                    <h4>📁 File Storage</h4>
+                    <p>Хранение файлов и документов</p>
+                    <div class="tech-stack">
+                        <span class="tech-tag">MinIO</span>
+                        <span class="tech-tag">S3 API</span>
+                        <span class="tech-tag">Presigned URLs</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Data Flow -->
+            <div class="data-flow">
+                <h3><span class="icon">🔄</span> Потоки данных</h3>
+                
+                <div class="flow-step">
+                    <h4>1️⃣ Создание отгрузки</h4>
+                    <p>Пользователь → Форма → API → База данных → Системное сообщение → Чат</p>
+                </div>
+                
+                <div class="flow-step">
+                    <h4>2️⃣ Загрузка отгрузок</h4>
+                    <p>Frontend → API → База данных → LocalStorage → UI отображение</p>
+                </div>
+                
+                <div class="flow-step">
+                    <h4>3️⃣ Синхронизация статусов</h4>
+                    <p>WebSocket → Real-time обновления → UI перерисовка</p>
+                </div>
+                
+                <div class="flow-step">
+                    <h4>4️⃣ Файловые операции</h4>
+                    <p>Загрузка → MinIO → Presigned URL → Прикрепление к чату</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Добавляем интерактивность
+        document.addEventListener('DOMContentLoaded', function() {
+            const components = document.querySelectorAll('.component');
+            
+            components.forEach(component => {
+                component.addEventListener('mouseenter', function() {
+                    this.style.transform = 'scale(1.02)';
+                    this.style.boxShadow = '0 8px 25px rgba(0,168,107,0.2)';
+                });
+                
+                component.addEventListener('mouseleave', function() {
+                    this.style.transform = 'scale(1)';
+                    this.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
+                });
+            });
+            
+            // Анимация появления
+            const layers = document.querySelectorAll('.layer');
+            layers.forEach((layer, index) => {
+                layer.style.opacity = '0';
+                layer.style.transform = 'translateY(20px)';
+                
+                setTimeout(() => {
+                    layer.style.transition = 'all 0.6s ease';
+                    layer.style.opacity = '1';
+                    layer.style.transform = 'translateY(0)';
+                }, index * 200);
+            });
+        });
+    </script>
+</body>
+</html>
+

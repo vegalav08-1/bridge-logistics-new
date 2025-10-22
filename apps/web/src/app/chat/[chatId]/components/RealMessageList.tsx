@@ -7,6 +7,7 @@ import type { LocalFilePayload, LocalTextPayload } from '@/lib/chat/bus';
 import { Pin, User, Shield, Bot, Clock } from 'lucide-react';
 import { FileAttachment } from './FileAttachment';
 import { FileCarousel } from './FileCarousel';
+import MessageBubble from './MessageBubble';
 
 type Props = {
   chatId: string;
@@ -20,17 +21,20 @@ export default function RealMessageList({ chatId, messages: propMessages, onSend
   const [carouselOpen, setCarouselOpen] = useState(false);
   const [carouselFiles, setCarouselFiles] = useState<any[]>([]);
   const [carouselIndex, setCarouselIndex] = useState(0);
+  const [quotedMessage, setQuotedMessage] = useState<ChatMessage | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Загрузка сообщений
   useEffect(() => {
     const loadMessages = async () => {
       try {
+        console.log('RealMessageList: Starting to load messages for chatId:', chatId);
         setLoading(true);
         
         // Сначала проверяем localStorage
         const { loadChatMessages } = await import('@/lib/chat/persistence');
         const storedMessages = loadChatMessages(chatId);
+        console.log('RealMessageList: Stored messages from localStorage:', storedMessages);
         
         if (storedMessages.length > 0) {
           console.log('RealMessageList: loading stored messages:', storedMessages);
@@ -40,7 +44,9 @@ export default function RealMessageList({ chatId, messages: propMessages, onSend
         }
         
         // Если в localStorage нет сообщений, загружаем из API
+        console.log('RealMessageList: No stored messages, loading from API...');
         const chatMessages = await getChatMessages(chatId);
+        console.log('RealMessageList: API returned messages:', chatMessages);
         setMessages(chatMessages);
         
         // Сохраняем системные сообщения в localStorage
@@ -173,34 +179,28 @@ export default function RealMessageList({ chatId, messages: propMessages, onSend
     if (onSendMessage) {
       onSendMessage(content);
     }
-  };
-
-  // Получение иконки для типа сообщения
-  const getMessageIcon = (type: string) => {
-    switch (type) {
-      case 'system':
-        return <Bot className="h-4 w-4 text-blue-500" />;
-      case 'user':
-        return <User className="h-4 w-4 text-green-500" />;
-      case 'admin':
-        return <Shield className="h-4 w-4 text-purple-500" />;
-      case 'auto':
-        return <Bot className="h-4 w-4 text-orange-500" />;
-      default:
-        return <User className="h-4 w-4 text-gray-500" />;
+    
+    // Если есть цитируемое сообщение, добавляем его в новое сообщение
+    if (quotedMessage) {
+      const newMessage: ChatMessage = {
+        id: `msg-${Date.now()}`,
+        type: 'user',
+        content: content,
+        timestamp: new Date().toISOString(),
+        sender: {
+          name: 'Вы',
+          role: 'USER'
+        },
+        quotedMessage: quotedMessage
+      };
+      
+      setMessages(prev => [newMessage, ...prev]);
     }
+    
+    // Очищаем цитирование после отправки сообщения
+    setQuotedMessage(null);
   };
 
-  // Форматирование времени
-  const formatTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleString('ru-RU', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
 
   // Функции для карусели
   const openCarousel = (files: any[], index: number) => {
@@ -239,59 +239,56 @@ export default function RealMessageList({ chatId, messages: propMessages, onSend
 
   return (
     <div className="flex flex-col h-full">
-      {/* Список сообщений */}
-      <div className="flex-1 overflow-y-auto px-4 py-2 space-y-4">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex ${message.isPinned ? 'bg-yellow-50 border-l-4 border-yellow-400' : ''}`}
-            data-shipment-info={message.isPinned && message.metadata?.action === 'shipment_info' ? 'true' : undefined}
-          >
+      {/* Индикатор цитирования */}
+      {quotedMessage && (
+        <div className="px-4 py-2 bg-blue-50 border-b border-blue-200">
+          <div className="flex items-center justify-between">
             <div className="flex-1">
-              {/* Заголовок сообщения */}
-              <div className="flex items-center gap-2 mb-1">
-                {getMessageIcon(message.type)}
-                <span className="font-medium text-sm text-gray-700">
-                  {message.sender?.name || 'Система'}
-                </span>
-                {message.isPinned && (
-                  <Pin className="h-3 w-3 text-yellow-500" />
-                )}
-                <span className="text-xs text-gray-500">
-                  {formatTime(message.timestamp)}
-                </span>
+              <div className="text-xs text-blue-600 font-medium mb-1">
+                Цитирование сообщения
               </div>
-
-                 {/* Содержимое сообщения */}
-                 <div 
-                   className="text-sm text-gray-800 whitespace-pre-wrap"
-                   dangerouslySetInnerHTML={{ 
-                     __html: message.content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                   }}
-                 />
-                 
-                 {/* Отображение файлов */}
-                 {message.attachments && message.attachments.length > 0 && (
-                   <div className="mt-3 space-y-2">
-                     {message.attachments.map((attachment: any, index: number) => (
-                       <FileAttachment
-                         key={index}
-                         file={{
-                           id: attachment.id || `attachment-${index}`,
-                           name: attachment.fileName || attachment.name || 'Файл',
-                           size: attachment.size || 0,
-                           type: attachment.mimeType || attachment.type || 'application/octet-stream',
-                           url: attachment.url || attachment.downloadUrl || '#'
-                         }}
-                         isUploaded={true} // Файлы в сообщениях уже отправлены
-                         onDownload={handleFileDownload}
-                         onView={(file) => handleFileView(file, message.attachments || [])}
-                       />
-                     ))}
-                   </div>
-                 )}
+              <div className="text-sm text-gray-700 line-clamp-1">
+                {quotedMessage.sender?.name || 'Система'}: {quotedMessage.content}
+              </div>
             </div>
+            <button
+              onClick={() => setQuotedMessage(null)}
+              className="ml-2 p-1 text-blue-600 hover:text-blue-800"
+              title="Отменить цитирование"
+            >
+              ✕
+            </button>
           </div>
+        </div>
+      )}
+
+      {/* Список сообщений */}
+      <div className="flex-1 overflow-y-auto px-4 py-2">
+        {messages.map((message) => (
+          <MessageBubble
+            key={message.id}
+            message={message}
+            isOwn={message.type === 'user' && message.sender?.name === 'Вы'}
+            onCopy={(message) => {
+              console.log('Copy message:', message.content);
+              // Копируем текст в буфер обмена
+              navigator.clipboard.writeText(message.content || '').then(() => {
+                console.log('Message copied to clipboard');
+              }).catch(err => {
+                console.error('Failed to copy message:', err);
+              });
+            }}
+            onQuote={(message) => {
+              console.log('Quote message:', message.content);
+              setQuotedMessage(message);
+              // Фокусируемся на поле ввода для ответа
+              const inputElement = document.querySelector('textarea[data-testid="composer-input"]') as HTMLTextAreaElement;
+              if (inputElement) {
+                inputElement.focus();
+                inputElement.placeholder = `Ответ на сообщение от ${message.sender?.name || 'Система'}: "${message.content?.substring(0, 50)}${message.content && message.content.length > 50 ? '...' : ''}"`;
+              }
+            }}
+          />
         ))}
         <div ref={bottomRef} />
       </div>

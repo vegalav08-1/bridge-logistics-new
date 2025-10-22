@@ -24,6 +24,7 @@ type Props = {
 };
 
 export default function Composer({ chatId, maxLen = 4000, onSendMessage }: Props) {
+  const [mounted, setMounted] = useState(false);
   const [text, setText] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [counter, setCounter] = useState(0);
@@ -46,6 +47,11 @@ export default function Composer({ chatId, maxLen = 4000, onSendMessage }: Props
   const [showMentions, setShowMentions] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
   const [mentionPosition, setMentionPosition] = useState({ top: 0, left: 0 });
+
+  // Проверка гидратации
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Закрытие меню при клике вне его области
   useEffect(() => {
@@ -332,7 +338,8 @@ export default function Composer({ chatId, maxLen = 4000, onSendMessage }: Props
              </div>
            )}
 
-      <form onSubmit={onSubmit} className="flex items-end gap-2">
+      {mounted ? (
+        <form onSubmit={onSubmit} className="flex items-end gap-2">
         {/* Кнопка "+" (меню вложений) */}
         <div className="relative">
           <button
@@ -449,6 +456,22 @@ export default function Composer({ chatId, maxLen = 4000, onSendMessage }: Props
           <Send className="h-5 w-5" />
         </button>
       </form>
+      ) : (
+        // Fallback во время гидратации
+        <div className="flex items-end gap-2">
+          <div className="h-11 w-11 rounded-xl border grid place-items-center bg-gray-100">
+            <Plus className="h-5 w-5 text-gray-400" />
+          </div>
+          <div className="flex-1 min-w-0 relative">
+            <div className="rounded-2xl border px-3 py-2 bg-gray-100">
+              <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+          </div>
+          <div className="h-11 w-11 rounded-xl bg-gray-300 grid place-items-center">
+            <Send className="h-5 w-5 text-gray-400" />
+          </div>
+        </div>
+      )}
 
       {/* Автокомплит для mentions */}
       {showMentions && (

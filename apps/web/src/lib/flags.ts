@@ -39,6 +39,20 @@ export const REAL_CHAT_ENABLED = true;      // новый composer + outbox
 // Chat UI6 flags
 export const VIEWER_V2_ENABLED = true;        // новый просмотрщик вложений
 
+// Chat Media flags (CH-01 to CH-13)
+export const CHAT_MEDIA_V1          = true;  // хранилище и метаданные медиа
+export const CHAT_UPLOAD_V1         = true;  // загрузка: чанки/резюм/ретраи
+export const CHAT_IMAGES_V1         = true;  // ресайзы, миниатюры, webp/avif
+export const CHAT_VIDEO_V1          = true;  // транскод/HLS постер/ограничение
+export const CHAT_DOCS_V1           = true;  // PDF viewer и браузер доков
+export const CHAT_LIGHTBOX_V1       = true;  // удобный просмотрщик в чате
+export const CHAT_MANAGERS_V1       = true;  // вкладки Media/Docs/Links в чате
+export const CHAT_MSG_EXT_V1        = true;  // reply/forward/edit/delete/captions
+export const CHAT_REALTIME_V1       = true;  // WS, доставлено/прочитано, typing
+export const CHAT_SEARCH_V1         = true;  // индекс фуллтекста и метаданных
+export const CHAT_PERF_CDN_V1       = true;  // CDN, prefetch, lazy, virtualize
+export const CHAT_SECURITY_V1       = true;  // antivirus, signedURL, ACL, retention
+
 // Forms UI7 flags
 export const FORMS_V2_ENABLED = true;         // новые формы requests/new и shipments/new
 
@@ -107,7 +121,7 @@ export const CRM_TIMELINE_V1 = true;         // единая лента акти
 export const CRM_REFERRALS_V1 = true;        // привязка к /partners, /r/[token]
 
 // Chat V2 фиче-флаги
-export const CHAT_V2_ENABLED = false;           // включает домен chat2 поверх текущего чата
+export const CHAT_V2_ENABLED = false;          // отключаем Chat V2 для переключения на реальные данные
 export const CHAT_V2_SETTINGS_ENABLED = true;   // настройки чата (mute / mentions override / invites)
 export const CHAT_V2_MENTIONS_ENABLED = true;   // @упоминания с автокомплитом и нотификациями
 export const CHAT_V2_PARTICIPANTS_ENABLED = true; // управление участниками, роли, персональный mute

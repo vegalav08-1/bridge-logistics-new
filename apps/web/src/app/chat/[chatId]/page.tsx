@@ -36,7 +36,6 @@ import { useChat2Store } from '@/lib/chat2/store';
 import { canEditSettings, canManageParticipants, canPin } from '@/lib/chat2/acl';
 import ChatSettingsDrawer from './components/v2/ChatSettingsDrawer';
 import ParticipantsDrawer from './components/v2/ParticipantsDrawer';
-import MessageInputV2 from './components/v2/MessageInputV2';
 import MessageBubbleV2 from './components/v2/MessageBubbleV2';
 import SystemCardV2 from './components/v2/SystemCardV2';
 import {
@@ -80,8 +79,19 @@ export default function ChatPage({ params }: { params: { chatId: string } }) {
   const isNewStage = order?.order?.status === 'NEW';
 
   // UI3 State
-  const [chatHeaderData, setChatHeaderData] = useState<ChatHeaderVM | null>(null);
-  const [userRole, setUserRole] = useState<Role>('USER');
+  const [chatHeaderData, setChatHeaderData] = useState<ChatHeaderVM>({
+    chatId: chatId,
+    number: `BR-${chatId.slice(-6)}`,
+    title: 'Test Chat V2',
+    subtitle: 'Mock shipment chat with Chat V2',
+    status: 'NEW',
+    updatedAtISO: new Date().toISOString(),
+    unreadCount: 0,
+    adminName: 'Admin',
+    userName: 'User',
+    qrAvailable: true
+  });
+  const [userRole, setUserRole] = useState<Role>('ADMIN');
   const [actionLoading, setActionLoading] = useState(false);
 
   // Modal states
@@ -99,6 +109,25 @@ export default function ChatPage({ params }: { params: { chatId: string } }) {
   
   // Chat V2 store
   const chat2Store = CHAT_V2_ENABLED ? useChat2Store() : null;
+  
+  // Проверка гидратации
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  
+  // Debug: проверяем состояние chat2Store (только на клиенте)
+  useEffect(() => {
+    if (mounted) {
+      console.log('Chat V2 store state:', {
+        CHAT_V2_ENABLED,
+        chat2Store: chat2Store ? 'loaded' : 'null',
+        chats: chat2Store?.chats,
+        messages: chat2Store?.messages
+      });
+    }
+  }, [mounted, chat2Store]);
 
   // CR/V state
   const [crvModal, setCrvModal] = useState<string | null>(null);
@@ -134,17 +163,42 @@ export default function ChatPage({ params }: { params: { chatId: string } }) {
   }, [chatId]);
   
   // Обработчик отправки сообщений для RealMessageList
-  const handleRealSendMessage = (content: string, attachments?: Array<{
+  const handleRealSendMessage = async (content: string, attachments?: Array<{
     id: string;
     name: string;
     size: number;
     type: string;
     url: string;
   }>) => {
+    console.log('handleRealSendMessage called with:', content, attachments);
+    console.log('Chat V2 enabled:', CHAT_V2_ENABLED, 'Store available:', !!chat2Store);
+    
+    // Если включен Chat V2, отправляем сообщение в Chat V2
+    if (CHAT_V2_ENABLED && chat2Store) {
+      try {
+        console.log('Attempting to send message via Chat V2...');
+        const message = await chat2.postMessage({
+          chatId,
+          kind: 'text',
+          text: content,
+          authorId: 'user-1'
+        });
+        console.log('Chat V2 message created:', message);
+        chat2Store.prependMessage(chatId, message);
+        console.log('Message added to Chat V2 store');
+        return;
+      } catch (error) {
+        console.error('Failed to send message to Chat V2:', error);
+        console.log('Falling back to Real Chat...');
+      }
+    }
+    
+    // Fallback для Real Chat
+    console.log('Using Real Chat fallback...');
     const newMessage = {
       id: `msg-${Date.now()}`,
       type: 'user',
-      content,
+      content: content || '',
       timestamp: new Date().toISOString(),
       sender: {
         name: 'Вы',
@@ -171,7 +225,7 @@ export default function ChatPage({ params }: { params: { chatId: string } }) {
     });
   };
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Начинаем с false для Chat V2
   const [error, setError] = useState<string | null>(null);
 
   // UI3 Handlers
@@ -420,20 +474,39 @@ export default function ChatPage({ params }: { params: { chatId: string } }) {
     if (CHAT_V2_ENABLED && chat2Store) {
       (async () => {
         try {
+          console.log('Initializing Chat V2 for chatId:', chatId);
+          console.log('Chat V2 store before init:', chat2Store);
+          
           const c = await chat2.fetchChat(chatId);
+          console.log('Chat V2 chat data:', c);
           chat2Store.setChat(c);
+          
           const page1 = await chat2.listMessages(chatId);
+          console.log('Chat V2 messages:', page1.items);
+          console.log('Messages count:', page1.items.length);
           chat2Store.setMessages(chatId, page1.items);
+          
+          console.log('Chat V2 store after init:', chat2Store);
+          console.log('Messages in store:', chat2Store.messages[chatId]);
         } catch (error) {
           console.error('Chat V2 initialization failed:', error);
         }
       })();
+    } else {
+      console.log('Chat V2 not enabled or store not available:', {
+        CHAT_V2_ENABLED,
+        chat2Store: !!chat2Store
+      });
     }
   }, [chatId, chat2Store]);
 
   const fetchChat = async () => {
     setLoading(true);
     try {
+      console.log('Fetching chat data for:', chatId);
+      console.log('CHAT_V2_ENABLED:', CHAT_V2_ENABLED);
+      console.log('REAL_CHAT_ENABLED:', REAL_CHAT_ENABLED);
+      
       // Mock data for testing
       let headerData: ChatHeaderVM;
       
@@ -474,11 +547,14 @@ export default function ChatPage({ params }: { params: { chatId: string } }) {
         };
       }
       
+      console.log('Header data set:', headerData);
       setChatHeaderData(headerData);
       setUserRole('ADMIN');
     } catch (err: any) {
+      console.error('Error fetching chat:', err);
       setError(err.message || 'Failed to fetch chat');
     } finally {
+      console.log('Setting loading to false');
       setLoading(false);
     }
   };
@@ -491,11 +567,9 @@ export default function ChatPage({ params }: { params: { chatId: string } }) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          {CHAT_HEADER_V2_ENABLED ? (
-            <ChatHeaderSkeleton />
-          ) : (
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-          )}
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Загрузка чата...</p>
+          <p className="text-sm text-gray-500 mt-2">Chat V2: {CHAT_V2_ENABLED ? 'включен' : 'выключен'}</p>
         </div>
       </div>
     );
@@ -680,29 +754,6 @@ export default function ChatPage({ params }: { params: { chatId: string } }) {
         </div>
       )}
 
-      {/* Chat V2 Components */}
-      {CHAT_V2_ENABLED && !isNewStage && (
-        <div className="px-4 py-2 space-y-2">
-          <div className="flex gap-2">
-            {canEditSettings('USER') && (
-              <button 
-                className="h-10 px-3 rounded-xl border"
-                onClick={() => setOpenSettings(true)}
-              >
-                Настройки чата
-              </button>
-            )}
-            {canManageParticipants('USER') && (
-              <button 
-                className="h-10 px-3 rounded-xl border"
-                onClick={() => setOpenParticipants(true)}
-              >
-                Участники
-              </button>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Message List - Scrollable area */}
       <div className="flex-1 min-h-0 overflow-y-auto">
@@ -712,18 +763,75 @@ export default function ChatPage({ params }: { params: { chatId: string } }) {
         {CHAT_V2_ENABLED ? (
           <div className="p-4 space-y-2">
             {/* Chat V2 messages will be rendered through the hook */}
-            {(chat2Store?.messages[chatId] || []).map((message: any) => (
-              <MessageBubbleV2 
-                key={message.id} 
-                message={message} 
-                isOwn={message.authorId === 'current-user-id'}
-                canPin={canPin('USER')}
-                onPin={(messageId: string, pinned: boolean) => {
-                  // TODO: implement pin functionality
-                  console.log('Pin message', messageId, pinned);
-                }}
-              />
-            ))}
+            {mounted ? (() => {
+              if (chat2Store?.messages?.[chatId]?.length > 0) {
+                return chat2Store.messages[chatId].map((message: any) => (
+                  <MessageBubbleV2 
+                    key={message.id} 
+                    message={message} 
+                    isOwn={message.authorId === 'user-1'}
+                    canPin={canPin('USER')}
+                    onPin={(messageId: string, pinned: boolean) => {
+                      // TODO: implement pin functionality
+                      console.log('Pin message', messageId, pinned);
+                    }}
+                  />
+                ));
+              } else if (realMessages && realMessages.length > 0) {
+                // Fallback: показываем Real Chat сообщения если Chat V2 не работает
+                return realMessages.map((message: any) => (
+                  <div key={message.id} className="p-3 bg-white rounded-lg border">
+                    <div className="flex items-start space-x-3">
+                      <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm">
+                        {message.sender?.name?.charAt(0) || 'U'}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium text-sm">{message.sender?.name || 'Unknown'}</span>
+                          <span className="text-xs text-gray-500">{message.timestamp ? new Date(message.timestamp).toLocaleTimeString() : 'Now'}</span>
+                        </div>
+                        <p className="text-sm mt-1">{message.content || 'No content'}</p>
+                      </div>
+                    </div>
+                  </div>
+                ));
+              } else {
+                return (
+                  <div className="text-center text-gray-500 py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p>Загрузка сообщений Chat V2...</p>
+                    <p className="text-sm mt-2">Store: {chat2Store ? 'loaded' : 'null'}</p>
+                    <p className="text-sm">Messages: {chat2Store?.messages?.[chatId]?.length || 0}</p>
+                    <p className="text-sm">Real Messages: {realMessages.length}</p>
+                    <button 
+                      onClick={() => {
+                        console.log('Manual Chat V2 init...');
+                        (async () => {
+                          try {
+                            const c = await chat2.fetchChat(chatId);
+                            chat2Store?.setChat(c);
+                            const page1 = await chat2.listMessages(chatId);
+                            chat2Store?.setMessages(chatId, page1.items);
+                            console.log('Manual init completed');
+                          } catch (error) {
+                            console.error('Manual init failed:', error);
+                          }
+                        })();
+                      }}
+                      className="mt-2 px-3 py-1 bg-blue-500 text-white rounded text-xs"
+                    >
+                      Принудительная инициализация
+                    </button>
+                  </div>
+                );
+              }
+            })() : (
+              // Fallback во время гидратации
+              <div className="text-center text-gray-500 py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p>Загрузка...</p>
+              </div>
+            )}
           </div>
         ) : REAL_CHAT_ENABLED ? (
           <RealMessageList
@@ -744,18 +852,6 @@ export default function ChatPage({ params }: { params: { chatId: string } }) {
         )}
       </div>
 
-      {/* Chat V2 Input - Fixed at bottom */}
-      {CHAT_V2_ENABLED && (
-        <div className="sticky bottom-0 z-40 bg-surface border-t border-border p-4">
-          <MessageInputV2
-            onSend={handleSendMessage}
-            mentionIndex={[
-              { id: 'user1', name: 'User 1' },
-              { id: 'user2', name: 'User 2' }
-            ]}
-          />
-        </div>
-      )}
 
       {/* WMS Right Panel */}
       {WMS_V1_ENABLED && wmsPanelOpen && !isNewStage && (
@@ -819,16 +915,20 @@ export default function ChatPage({ params }: { params: { chatId: string } }) {
         </div>
       )}
 
-      {/* Composer - Fixed at bottom */}
-      {COMPOSER_V2_ENABLED ? (
-        <div className="sticky bottom-0 z-40 bg-surface border-t border-border">
-          <Composer chatId={chatId} onSendMessage={handleRealSendMessage} />
-        </div>
-      ) : (
-        <div className="sticky bottom-0 z-40 bg-surface border-t border-border p-4">
-          <div className="text-sm text-gray-500">Legacy composer</div>
-        </div>
-      )}
+    {/* Composer - Fixed at bottom */}
+    {mounted && (
+      <>
+        {COMPOSER_V2_ENABLED ? (
+          <div className="sticky bottom-0 z-40 bg-surface border-t border-border">
+            <Composer chatId={chatId} onSendMessage={handleRealSendMessage} />
+          </div>
+        ) : (
+          <div className="sticky bottom-0 z-40 bg-surface border-t border-border p-4">
+            <div className="text-sm text-gray-500">Legacy composer</div>
+          </div>
+        )}
+      </>
+    )}
 
       {/* Action Modals */}
       {CHAT_HEADER_V2_ENABLED && STATUS_ACTIONS_V2_ENABLED && (
